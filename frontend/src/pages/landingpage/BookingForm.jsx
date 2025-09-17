@@ -24,7 +24,7 @@ export default function BookingForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post("http://localhost:5000/api/booking", formData);
+      await axios.post("http://localhost:5000/api/booking-user", formData);
       setMessage("✅ Terima kasih, booking anda sedang diproses.");
       setFormData({
         guestName: "",

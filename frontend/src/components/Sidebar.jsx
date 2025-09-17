@@ -8,9 +8,9 @@ export default function Sidebar() {
   const location = useLocation();
 
   const navItems = [
-    { path: "/dashboard", label: "Dashboard" },
-    { path: "/bookings", label: "Bookings" },
+    // { path: "/dashboard", label: "Dashboard" },
     { path: "/room", label: "Rooms" },
+    { path: "/bookings", label: "Bookings" },
     { path: "/konten-management", label: "konten"}
   ];
 
