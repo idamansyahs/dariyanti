@@ -1,0 +1,86 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// schema.prisma (potongan)
+model Admin {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Room {
+  id         Int        @id @default(autoincrement())
+  roomNumber String     @unique
+  type       RoomType
+  price      Int        // harga per malam (rupiah)
+  status     RoomStatus @default(VCN)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  bookings   Booking[]  // relation (historis & assigned)
+}
+
+model Booking {
+  id           Int           @id @default(autoincrement())
+  room         Room?         @relation(fields: [roomId], references: [id])
+  roomId       Int?
+  roomType     RoomType      // jenis kamar yg diminta user (BOUTIQUE/SS/DXQ)
+  guestName    String
+  email        String
+  phone        String
+  notes        String?
+  checkIn      DateTime
+  checkOut     DateTime
+  nights       Int?
+  pricePerNight Int?
+  total        Int?
+  status       BookingStatus @default(PENDING) // PENDING / CONFIRMED / CHECKED_IN / CHECKED_OUT / CANCELLED
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+enum RoomType {
+  BOUTIQUE
+  SS
+  DXQ
+}
+
+enum RoomStatus {
+  VCN        // Vacant, clean, not inspected
+  VCI        // Vacant, clean, inspected (ready)
+  OCCUPIED
+  VDN        // Vacant, dirty (needs cleaning)
+  OOO        // Out of order / not for rent
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CHECKED_IN
+  CHECKED_OUT
+  CANCELLED
+}
+
+model Konten {
+  id        Int      @id @default(autoincrement())
+  link      String
+  deskripsi String
+  platform  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
