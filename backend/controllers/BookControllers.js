@@ -80,10 +80,7 @@ export const assignRoom = async (req, res) => {
       where: {
         roomId: Number(roomId),
         status: { in: ["CONFIRMED", "CHECKED_IN"] },
-        AND: [
-          { checkIn: { lt: booking.checkOut } },
-          { checkOut: { gt: booking.checkIn } },
-        ],
+        AND: [{ checkIn: { lt: booking.checkOut } }, { checkOut: { gt: booking.checkIn } }],
       },
     });
 
@@ -106,57 +103,43 @@ export const assignRoom = async (req, res) => {
 
 // Update booking status (admin) + email notify on CONFIRMED or CANCELLED
 export const updateBookingStatus = async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+
   try {
-    const { id } = req.params;
-    const { status } = req.body;
-    const allowed = ["PENDING", "CONFIRMED", "CHECKED_IN", "CHECKED_OUT", "CANCELLED"];
-    if (!allowed.includes(status)) return res.status(400).json({ error: "Status invalid" });
-
-    // ambil dulu booking lama
-    const bookingBefore = await prisma.booking.findUnique({ where: { id: Number(id) }, include: { room: true } });
-    if (!bookingBefore) return res.status(404).json({ error: "Booking tidak ditemukan" });
-
-    // update booking status
-    const updated = await prisma.booking.update({
-      where: { id: Number(id) },
+    const booking = await prisma.booking.update({
+      where: { id: parseInt(id, 10) },
       data: { status },
-      include: { room: true },
     });
 
-    // update room.status tergantung status booking
-    if (updated.roomId) {
-      if (status === "CHECKED_IN") {
-        await prisma.room.update({ where: { id: updated.roomId }, data: { status: "OCCUPIED" } });
-      } else if (status === "CHECKED_OUT") {
-        await prisma.room.update({ where: { id: updated.roomId }, data: { status: "VDN" } }); // perlu dibersihkan
-      } else if (status === "CANCELLED") {
-        // jika room sudah ter-assign tapi belum di-huni, set kembali ke READY (VCI)
-        await prisma.room.update({ where: { id: updated.roomId }, data: { status: "VCI" } });
-      }
-    }
-
-    // send email on CONFIRMED or CANCELLED
-    if (status === "CONFIRMED" || status === "CANCELLED") {
-      const subject = status === "CONFIRMED" ? "Booking Anda Telah Dikonfirmasi" : "Booking Anda Dibatalkan";
-      const html = `
-        <p>Hi ${updated.guestName},</p>
-        <p>Booking Anda untuk <strong>${updated.roomType}</strong> dari <strong>${updated.checkIn.toISOString().slice(0,10)}</strong> sampai <strong>${updated.checkOut.toISOString().slice(0,10)}</strong> telah <strong>${status}</strong>.</p>
-        ${updated.room ? `<p>Nomor kamar: <strong>${updated.room.roomNumber}</strong></p>` : ""}
-        <p>Total: <strong>Rp ${Number(updated.total).toLocaleString("id-ID")}</strong></p>
-        <p>Terima kasih, <br/>Fhandika Boutique</p>
-      `;
-
-      try {
-        await sendMail({ to: updated.email, subject, html });
-      } catch (mailErr) {
-        console.error("Gagal mengirim email:", mailErr);
-        // jangan return error — email gagal tidak membuat operasi booking gagal
-      }
-    }
-
-    return res.json(updated);
+    // TODO: kirim email notifikasi ke user (pending → confirmed/cancelled)
+    res.json({ message: "Booking status updated", booking });
   } catch (err) {
-    console.error("updateBookingStatus:", err);
-    return res.status(500).json({ error: "Gagal update booking status" });
+    res.status(500).json({ error: "Failed to update booking status" });
+  }
+};
+
+export const getPublicRooms = async (req, res) => {
+  try {
+    const { search, type } = req.query;
+
+    let where = {};
+
+    if (search) {
+      where.OR = [{ type: { contains: search, mode: "insensitive" } }, { roomNumber: { contains: search, mode: "insensitive" } }];
+    }
+
+    if (type) {
+      where.type = type;
+    }
+
+    const rooms = await prisma.room.findMany({
+      where,
+      orderBy: { id: "asc" },
+    });
+
+    res.json(rooms);
+  } catch (err) {
+    res.status(500).json({ error: "Error fetching rooms" });
   }
 };
