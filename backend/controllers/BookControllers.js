@@ -11,7 +11,7 @@ const nightsBetween = (start, end) => {
 };
 
 // Create booking (public)
-export const createBooking = async (req, res) => {
+export const createBookingUser = async (req, res) => {
   try {
     const { roomType, guestName, email, phone, notes, checkIn, checkOut } = req.body;
     if (!roomType || !guestName || !email || !phone || !checkIn || !checkOut) {
@@ -45,6 +45,64 @@ export const createBooking = async (req, res) => {
   } catch (err) {
     console.error("createBooking:", err);
     return res.status(500).json({ error: "Gagal membuat booking" });
+  }
+};
+
+// Create booking admin
+export const createBooking = async (req, res) => {
+  try {
+    const { guestName, email, phone, notes, checkIn, checkOut, roomId, roomType } = req.body;
+
+    // hitung nights
+    const start = new Date(checkIn);
+    const end = new Date(checkOut);
+    const nights = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+
+    // ambil harga dari room (kalau ada)
+    let pricePerNight = 0;
+    if (roomId) {
+      const room = await prisma.room.findUnique({ where: { id: parseInt(roomId) } });
+      if (room) pricePerNight = room.price;
+    }
+
+    const total = nights * pricePerNight;
+
+    const booking = await prisma.booking.create({
+      data: {
+        guestName,
+        email,
+        phone,
+        notes,
+        checkIn: new Date(checkIn),
+        checkOut: new Date(checkOut),
+        nights,
+        pricePerNight,
+        total,
+        roomId: roomId ? parseInt(roomId) : null,
+        roomType, // wajib dari enum
+      },
+    });
+
+    res.json(booking);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// Update booking
+export const updateBooking = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const data = req.body;
+
+    const booking = await prisma.booking.update({
+      where: { id: Number(id) },
+      data,
+    });
+
+    res.json(booking);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };
 
@@ -103,19 +161,16 @@ export const assignRoom = async (req, res) => {
 
 // Update booking status (admin) + email notify on CONFIRMED or CANCELLED
 export const updateBookingStatus = async (req, res) => {
-  const { id } = req.params;
-  const { status } = req.body;
-
   try {
+    const { id } = req.params;
+    const { status } = req.body;
     const booking = await prisma.booking.update({
-      where: { id: parseInt(id, 10) },
+      where: { id: parseInt(id) },
       data: { status },
     });
-
-    // TODO: kirim email notifikasi ke user (pending → confirmed/cancelled)
-    res.json({ message: "Booking status updated", booking });
+    res.json(booking);
   } catch (err) {
-    res.status(500).json({ error: "Failed to update booking status" });
+    res.status(500).json({ error: err.message });
   }
 };
 
@@ -141,5 +196,20 @@ export const getPublicRooms = async (req, res) => {
     res.json(rooms);
   } catch (err) {
     res.status(500).json({ error: "Error fetching rooms" });
+  }
+};
+
+// Delete booking
+export const deleteBooking = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    await prisma.booking.delete({
+      where: { id: Number(id) },
+    });
+
+    res.json({ message: "Booking deleted" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };

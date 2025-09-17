@@ -6,8 +6,16 @@ export default function RoomAdmin() {
   const [rooms, setRooms] = useState([]);
   const [form, setForm] = useState({ roomNumber: "", type: "", price: "" });
   const [editingRoom, setEditingRoom] = useState(null);
-
+  
   // Fetch data
+  // const fetchRooms = async () => {
+  //   const res = await api.get("/api/room", {
+  //     headers: { Authorization: `Bearer ${token}` },
+  //   });
+  //   setRooms(res.data);
+  // };
+
+  
   const fetchRooms = async () => {
     const res = await fetch("http://localhost:5000/api/room", {
       headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
@@ -15,6 +23,14 @@ export default function RoomAdmin() {
     const data = await res.json();
     setRooms(data);
   };
+
+
+  useEffect(() => {
+    // fetchBookings();
+    fetchRooms();
+  }, []);
+
+
 
   useEffect(() => {
     fetchRooms();
