@@ -34,10 +34,10 @@ router.put("/booking/:id/assign-room", authMiddleware, assignRoom);
 /**
  * KONTEN
  */
-router.get("/konten", getKonten);
-router.get("/konten/:id", getKontenById);
-router.post("/konten", createKonten);
-router.put("/konten/:id", updateKonten);
-router.delete("/konten/:id", deleteKonten);
+router.get("/konten-management", authMiddleware,getKonten);
+router.get("/konten-management/:id",authMiddleware, getKontenById);
+router.post("/konten-management",authMiddleware, createKonten);
+router.put("/konten-management/:id",authMiddleware, updateKonten);
+router.delete("/konten-management/:id",authMiddleware, deleteKonten);
 
 export default router;

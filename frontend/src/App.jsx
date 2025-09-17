@@ -17,6 +17,7 @@ import LavaGallery from "./pages/landingpage/LavaGallery.jsx";
 import Menu from "./pages/landingpage/Menu.jsx";
 import Room_LP from "./pages/landingpage/Room.jsx";
 import BookingForm from "./pages/landingpage/BookingForm.jsx";
+import DaftarKonten from "./pages/konten/DaftarKonten.jsx";
 
 import './app.css'
 import './assets/css/style.css'
@@ -51,6 +52,11 @@ export default function App() {
       <Route path="/room" element={
         <ProtectedRoute>
           <RoomList />
+        </ProtectedRoute>
+      } />
+      <Route path="/konten-management" element={
+        <ProtectedRoute>
+          <DaftarKonten />
         </ProtectedRoute>
       } />
       <Route path="/" element={<Navigate to="/dashboard" replace />} />

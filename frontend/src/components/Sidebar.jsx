@@ -11,7 +11,7 @@ export default function Sidebar() {
     { path: "/dashboard", label: "Dashboard" },
     { path: "/bookings", label: "Bookings" },
     { path: "/room", label: "Rooms" },
-    { path: "/konten-management", label: "konten"}
+    { path: "/konten-management", label: "konten"},
   ];
 
   return (
