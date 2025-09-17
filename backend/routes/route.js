@@ -2,7 +2,7 @@ import express from "express";
 import { login, profile } from "../controllers/AuthControllers.js";
 import { authMiddleware } from "../src/middleware/authMiddleware.js";
 import { getKonten, getKontenById, createKonten, updateKonten, deleteKonten } from "../controllers/KontenController.js";
-import { assignRoom, createBooking, getBookings, getPublicRooms, updateBookingStatus } from "../controllers/BookControllers.js";
+import { assignRoom, createBooking, createBookingUser, deleteBooking, getBookings, getPublicRooms, updateBooking, updateBookingStatus } from "../controllers/BookControllers.js";
 import { createRoom, deleteRoom, getRoomById, getRooms, updateRoom, updateRoomStatus } from "../controllers/RoomControllers.js";
 
 const router = express.Router();
@@ -15,7 +15,7 @@ const router = express.Router();
 router.post("/login", login);
 
 // Booking
-router.post("/booking", createBooking);
+router.post("/booking-user", createBookingUser);
 
 
 // Protected
@@ -28,9 +28,14 @@ router.patch("/room/:id/status", authMiddleware, updateRoomStatus);
 router.delete("/room/:id", authMiddleware, deleteRoom);
 
 router.get("/profile", authMiddleware, profile);
+
+
 router.get("/booking", authMiddleware, getBookings);
+router.post("/booking", authMiddleware, createBooking);
+router.put("/booking/:id", authMiddleware, updateBooking);
 router.put("/booking/:id/status", authMiddleware, updateBookingStatus);
 router.put("/booking/:id/assign-room", authMiddleware, assignRoom);
+router.delete("/booking/:id", authMiddleware, deleteBooking);
 
 /**
  * KONTEN
