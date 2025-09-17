@@ -26,6 +26,7 @@ const DaftarKonten = () => {
         if (window.confirm('Apakah anda yakin!')) {
             try {
                 await api.delete(`api/konten-management/${id}`)
+                setContent(content.filter((r) => r.id !== id));
             } catch (err) {
                 console.error(err)
             }
