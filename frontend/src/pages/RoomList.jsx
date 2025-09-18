@@ -1,234 +1,341 @@
-import React from "react";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
+import api from "../api";
 import Layout from "../components/Layout";
 
-export default function RoomAdmin() {
+const RoomList = () => {
   const [rooms, setRooms] = useState([]);
-  const [form, setForm] = useState({ roomNumber: "", type: "", price: "" });
-  const [editingRoom, setEditingRoom] = useState(null);
-  
-  // Fetch data
-  // const fetchRooms = async () => {
-  //   const res = await api.get("/api/room", {
-  //     headers: { Authorization: `Bearer ${token}` },
-  //   });
-  //   setRooms(res.data);
-  // };
+  const [newRoom, setNewRoom] = useState({
+    roomNumber: "",
+    type: "",
+    price: "",
+    status: "VCI",
+  });
+  const [editRoom, setEditRoom] = useState(null);
+  const token = localStorage.getItem("token");
 
-  
+  useEffect(() => {
+    fetchRooms();
+  }, []);
+
   const fetchRooms = async () => {
-    const res = await fetch("http://localhost:5000/api/room", {
-      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-    });
-    const data = await res.json();
-    setRooms(data);
+    try {
+      const res = await api.get("/api/room", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setRooms(res.data);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-
-  useEffect(() => {
-    // fetchBookings();
-    fetchRooms();
-  }, []);
-
-
-
-  useEffect(() => {
-    fetchRooms();
-  }, []);
-
-  // Handle input
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+  const handleCreate = async () => {
+    try {
+      await api.post("/api/room", newRoom, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setNewRoom({ roomNumber: "", type: "", price: "", status: "VCI" });
+      fetchRooms();
+      const modal = window.bootstrap.Modal.getInstance(
+        document.getElementById("addRoomModal")
+      );
+      if (modal) modal.hide();
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  // Submit tambah / edit
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    const method = editingRoom ? "PUT" : "POST";
-    const url = editingRoom
-      ? `http://localhost:5000/api/room/${editingRoom.id}`
-      : "http://localhost:5000/api/room";
-
-    await fetch(url, {
-      method,
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
-      body: JSON.stringify(form),
-    });
-
-    await fetchRooms();
-    setForm({ roomNumber: "", type: "", price: "" });
-    setEditingRoom(null);
-
-    // Tutup modal secara manual (Bootstrap 5)
-    const modalEl = document.getElementById("roomModal");
-    const modal = window.bootstrap.Modal.getInstance(modalEl);
-    modal.hide();
+  const handleUpdate = async () => {
+    if (!editRoom) return;
+    try {
+      await api.put(`/api/room/${editRoom.id}`, editRoom, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      fetchRooms();
+      setEditRoom(null);
+      const modal = window.bootstrap.Modal.getInstance(
+        document.getElementById("editRoomModal")
+      );
+      if (modal) modal.hide();
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  // Edit room
-  const handleEdit = (room) => {
-    setForm({
-      roomNumber: room.roomNumber,
-      type: room.type,
-      price: room.price,
-    });
-    setEditingRoom(room);
-    const modal = new window.bootstrap.Modal(
-      document.getElementById("roomModal")
-    );
-    modal.show();
-  };
-
-  // Hapus room
   const handleDelete = async (id) => {
-    if (!window.confirm("Yakin ingin menghapus kamar ini?")) return;
-    await fetch(`http://localhost:5000/api/room/${id}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-    });
-    setRooms(rooms.filter((r) => r.id !== id));
+    if (!window.confirm("Yakin ingin menghapus room ini?")) return;
+    try {
+      await api.delete(`/api/room/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      fetchRooms();
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  // Buka modal tambah
-  const openAddModal = () => {
-    setForm({ roomNumber: "", type: "", price: "" });
-    setEditingRoom(null);
-    const modal = new window.bootstrap.Modal(
-      document.getElementById("roomModal")
-    );
-    modal.show();
+  const getStatusBadge = (status) => {
+    const colors = {
+      OCCUPIED: "danger",
+      VCI: "success",
+      VCN: "secondary",
+      VDN: "warning",
+      OOO: "dark",
+    };
+    return <span className={`badge bg-${colors[status]}`}>{status}</span>;
   };
 
   return (
     <Layout>
       <div className="container mt-5">
-        <h1 className="mb-4">🏨 Manajemen Kamar</h1>
-
-        <button className="btn btn-primary mb-3" onClick={openAddModal}>
-          Tambah Kamar
-        </button>
-
-        {/* Tabel */}
-        <div className="table-responsive">
-          <table className="table table-bordered table-striped">
-            <thead className="table-light">
-              <tr>
-                <th>No Kamar</th>
-                <th>Jenis</th>
-                <th>Harga</th>
-                <th>Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rooms.length > 0 ? (
-                rooms.map((room) => (
-                  <tr key={room.id}>
-                    <td>{room.roomNumber}</td>
-                    <td>{room.type}</td>
-                    <td>Rp {room.price.toLocaleString()}</td>
-                    <td>
-                      <button
-                        className="btn btn-sm btn-warning me-2"
-                        onClick={() => handleEdit(room)}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        className="btn btn-sm btn-danger"
-                        onClick={() => handleDelete(room.id)}
-                      >
-                        Hapus
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="4" className="text-center text-muted py-4">
-                    Belum ada data kamar
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+        <div className="d-flex justify-content-between align-items-center mb-4">
+          <h2 className="fw-bold">Room Management</h2>
+          <button
+            className="btn btn-primary shadow-sm"
+            data-bs-toggle="modal"
+            data-bs-target="#addRoomModal"
+          >
+            <i className="bi bi-plus-circle me-2"></i> Add Room
+          </button>
         </div>
 
-        {/* Modal Tambah / Edit */}
+        <div className="row">
+          {rooms.map((room) => (
+            <div key={room.id} className="col-md-4 col-lg-3 mb-4">
+              <div className="card shadow-sm border-0 rounded-3 h-100">
+                <div className="card-body">
+                  <div className="d-flex justify-content-between align-items-center mb-2">
+                    <h5 className="card-title fw-bold mb-0">
+                      Room {room.roomNumber}
+                    </h5>
+                    {getStatusBadge(room.status)}
+                  </div>
+                  <p className="text-muted mb-1">
+                    <strong>Type:</strong> {room.type}
+                  </p>
+                  <p className="text-muted mb-3">
+                    <strong>Price:</strong> Rp{" "}
+                    {Number(room.price).toLocaleString()}
+                  </p>
+                  <div className="d-flex justify-content-between">
+                    <button
+                      className="btn btn-outline-warning btn-sm"
+                      data-bs-toggle="modal"
+                      data-bs-target="#editRoomModal"
+                      onClick={() => setEditRoom(room)}
+                    >
+                      <i className="bi bi-pencil-square me-1"></i>Edit
+                    </button>
+                    <button
+                      className="btn btn-outline-danger btn-sm"
+                      onClick={() => handleDelete(room.id)}
+                    >
+                      <i className="bi bi-trash me-1"></i>Delete
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Add Room Modal */}
         <div
           className="modal fade"
-          id="roomModal"
+          id="addRoomModal"
           tabIndex="-1"
           aria-hidden="true"
         >
-          <div className="modal-dialog">
-            <form className="modal-content" onSubmit={handleSubmit}>
-              <div className="modal-header">
-                <h5 className="modal-title">
-                  {editingRoom ? "Edit Kamar" : "Tambah Kamar"}
-                </h5>
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content rounded-4 shadow">
+              <div className="modal-header border-0">
+                <h5 className="modal-title fw-bold">Add Room</h5>
                 <button
                   type="button"
                   className="btn-close"
                   data-bs-dismiss="modal"
-                  aria-label="Close"
                 ></button>
               </div>
               <div className="modal-body">
-                <div className="mb-3">
-                  <label className="form-label">Nomor Kamar</label>
+                <div className="form-floating mb-3">
                   <input
                     type="text"
-                    name="roomNumber"
                     className="form-control"
-                    value={form.roomNumber}
-                    onChange={handleChange}
-                    required
-                    disabled={!!editingRoom} // no kamar tidak bisa diubah saat edit
+                    id="roomNumber"
+                    placeholder="Room Number"
+                    value={newRoom.roomNumber}
+                    onChange={(e) =>
+                      setNewRoom({ ...newRoom, roomNumber: e.target.value })
+                    }
                   />
+                  <label htmlFor="roomNumber">Room Number</label>
                 </div>
-                <div className="mb-3">
-                  <label className="form-label">Jenis Kamar</label>
+
+                <div className="form-floating mb-3">
                   <select
-                    name="type"
                     className="form-select"
-                    value={form.type}
-                    onChange={handleChange}
-                    required
+                    id="roomType"
+                    value={newRoom.type}
+                    onChange={(e) =>
+                      setNewRoom({ ...newRoom, type: e.target.value })
+                    }
                   >
-                    <option value="">-- Pilih --</option>
-                    <option value="BOUTIQUE">Boutique</option>
+                    <option value="">-- Select Type --</option>
+                    <option value="BOUTIQUE">BOUTIQUE</option>
                     <option value="SS">SS</option>
                     <option value="DXQ">DXQ</option>
                   </select>
+                  <label htmlFor="roomType">Room Type</label>
                 </div>
-                <div className="mb-3">
-                  <label className="form-label">Harga</label>
+
+                <div className="form-floating mb-3">
                   <input
                     type="number"
-                    name="price"
                     className="form-control"
-                    value={form.price}
-                    onChange={handleChange}
-                    required
+                    id="price"
+                    placeholder="Price"
+                    value={newRoom.price}
+                    onChange={(e) =>
+                      setNewRoom({ ...newRoom, price: e.target.value })
+                    }
                   />
+                  <label htmlFor="price">Price</label>
+                </div>
+
+                <div className="form-floating">
+                  <select
+                    className="form-select"
+                    id="status"
+                    value={newRoom.status}
+                    onChange={(e) =>
+                      setNewRoom({ ...newRoom, status: e.target.value })
+                    }
+                  >
+                    <option value="VCI">VCI - Vacant Clean Inspected</option>
+                    <option value="VCN">VCN - Vacant Clean Not inspected</option>
+                    <option value="OCCUPIED">OCCUPIED</option>
+                    <option value="VDN">VDN - Vacant Dirty</option>
+                    <option value="OOO">OOO - Out of Order</option>
+                  </select>
+                  <label htmlFor="status">Status</label>
                 </div>
               </div>
-              <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" data-bs-dismiss="modal">
-                  Batal
+              <div className="modal-footer border-0">
+                <button className="btn btn-light" data-bs-dismiss="modal">
+                  Cancel
                 </button>
-                <button type="submit" className="btn btn-primary">
-                  {editingRoom ? "Simpan Perubahan" : "Tambah Kamar"}
+                <button className="btn btn-primary" onClick={handleCreate}>
+                  Save Room
                 </button>
               </div>
-            </form>
+            </div>
+          </div>
+        </div>
+
+        {/* Edit Room Modal */}
+        <div
+          className="modal fade"
+          id="editRoomModal"
+          tabIndex="-1"
+          aria-hidden="true"
+        >
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content rounded-4 shadow">
+              <div className="modal-header border-0">
+                <h5 className="modal-title fw-bold">Edit Room</h5>
+                <button
+                  type="button"
+                  className="btn-close"
+                  data-bs-dismiss="modal"
+                ></button>
+              </div>
+              {editRoom && (
+                <>
+                  <div className="modal-body">
+                    <div className="form-floating mb-3">
+                      <input
+                        type="text"
+                        className="form-control"
+                        id="editRoomNumber"
+                        placeholder="Room Number"
+                        value={editRoom.roomNumber}
+                        onChange={(e) =>
+                          setEditRoom({
+                            ...editRoom,
+                            roomNumber: e.target.value,
+                          })
+                        }
+                      />
+                      <label htmlFor="editRoomNumber">Room Number</label>
+                    </div>
+
+                    <div className="form-floating mb-3">
+                      <select
+                        className="form-select"
+                        id="editRoomType"
+                        value={editRoom.type}
+                        onChange={(e) =>
+                          setEditRoom({ ...editRoom, type: e.target.value })
+                        }
+                      >
+                        <option value="BOUTIQUE">BOUTIQUE</option>
+                        <option value="SS">SS</option>
+                        <option value="DXQ">DXQ</option>
+                      </select>
+                      <label htmlFor="editRoomType">Room Type</label>
+                    </div>
+
+                    <div className="form-floating mb-3">
+                      <input
+                        type="number"
+                        className="form-control"
+                        id="editPrice"
+                        placeholder="Price"
+                        value={editRoom.price}
+                        onChange={(e) =>
+                          setEditRoom({ ...editRoom, price: e.target.value })
+                        }
+                      />
+                      <label htmlFor="editPrice">Price</label>
+                    </div>
+
+                    <div className="form-floating">
+                      <select
+                        className="form-select"
+                        id="editStatus"
+                        value={editRoom.status}
+                        onChange={(e) =>
+                          setEditRoom({ ...editRoom, status: e.target.value })
+                        }
+                      >
+                        <option value="VCI">
+                          VCI - Vacant Clean Inspected
+                        </option>
+                        <option value="VCN">
+                          VCN - Vacant Clean Not inspected
+                        </option>
+                        <option value="OCCUPIED">OCCUPIED</option>
+                        <option value="VDN">VDN - Vacant Dirty</option>
+                        <option value="OOO">OOO - Out of Order</option>
+                      </select>
+                      <label htmlFor="editStatus">Status</label>
+                    </div>
+                  </div>
+                  <div className="modal-footer border-0">
+                    <button className="btn btn-light" data-bs-dismiss="modal">
+                      Cancel
+                    </button>
+                    <button className="btn btn-primary" onClick={handleUpdate}>
+                      Update Room
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>
     </Layout>
   );
-}
+};
+
+export default RoomList;
