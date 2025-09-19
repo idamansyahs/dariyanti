@@ -164,7 +164,7 @@ const DaftarKonten = () => {
                     <form className="modal-content" onSubmit={handleSubmit}>
                         <div className="modal-header">
                             <h5 className="modal-title">
-                                {editingContent ? "Edit Konten" : "Tambah Konten"}
+                                {editingContent ? "Tambah Konten" : "Edit Konten"}
                             </h5>
                             <button
                                 type="button"
@@ -218,7 +218,7 @@ const DaftarKonten = () => {
                                 Batal
                             </button>
                             <button type="submit" className="btn btn-primary">
-                                {editingContent ? "Simpan Perubahan" : "Edit Konten"}
+                                {editingContent ? "Simpan Perubahan" : "Tambah Konten"}
                             </button>
                         </div>
                     </form>

@@ -40,6 +40,7 @@ router.delete("/booking/:id", authMiddleware, deleteBooking);
 /**
  * KONTEN
  */
+router.get("/konten-user",getKonten);
 router.get("/konten-management", authMiddleware,getKonten);
 router.get("/konten-management/:id",authMiddleware, getKontenById);
 router.post("/konten-management",authMiddleware, createKonten);
