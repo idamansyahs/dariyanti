@@ -296,7 +296,6 @@ const Gallery = () => {
             </div>
 
             {/* content start */}
-            <div className="row g-4">
               {instaContents.map((item) => (
                 <div key={item.id} className="col-lg-4 col-md-6">
                   <div className="portfolio-onner rounded">
@@ -331,7 +330,6 @@ const Gallery = () => {
             </div>
 
             {/* content end */}
-          </div>
         </div>
       </div>
       {/* gallery end */}
