@@ -1,7 +1,103 @@
-import React from 'react'
+import React, { useEffect, useRef, useState } from "react";
 import { Link } from 'react-router-dom'
+import Isotope from "isotope-layout";
+import axios from "axios";
 
 const Gallery = () => {
+
+  const iso = useRef(null);
+  const [filterKey, setFilterKey] = useState("*");
+  const [contents, setContents] = useState([]);
+  const [instaContents, setInstaContents] = useState([]);
+  const [tiktokContents, setTiktokContents] = useState([]);
+
+  useEffect(() => {
+    axios.get("http://localhost:5000/api/konten-user").then((res) => {
+      const data = res.data;
+
+      const ig = data
+        .filter((item) => item.platform.toLowerCase() === "instagram")
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        .slice(0, 3);
+
+      const tt = data
+        .filter((item) => item.platform.toLowerCase() === "tiktok")
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        .slice(0, 3);
+
+      setInstaContents(ig);
+      setTiktokContents(tt);
+    })
+  }, []);
+
+  useEffect(() => {
+    // pastikan script embed Instagram sudah ada
+    if (!document.getElementById("instgrm-script")) {
+      const s = document.createElement("script");
+      s.id = "instgrm-script";
+      s.src = "https://www.instagram.com/embed.js";
+      s.async = true;
+      document.body.appendChild(s);
+    } else if (window.instgrm) {
+      window.instgrm.Embeds.process();
+    }
+  }, []);
+
+
+  useEffect(() => {
+    // Pastikan script TikTok embed sudah dimuat
+    if (!document.getElementById("tiktok-embed-script")) {
+      const s = document.createElement("script");
+      s.id = "tiktok-embed-script";
+      s.src = "https://www.tiktok.com/embed.js";
+      s.async = true;
+      document.body.appendChild(s);
+    } else if (window.tiktokEmbed) {
+      window.tiktokEmbed(); // kalau ada API-nya
+    }
+  }, []);
+
+  useEffect(() => {
+    // inisialisasi Isotope hanya sekali, setelah DOM render
+    iso.current = new Isotope(".portfolio-container", {
+      itemSelector: ".portfolio-item",
+      layoutMode: "fitRows",
+    });
+
+    return () => iso.current?.destroy();
+  }, []);
+
+  // setiap kali filterKey berubah, atur ulang item
+  useEffect(() => {
+    if (iso.current) {
+      iso.current.arrange({ filter: filterKey });
+    }
+  }, [filterKey]);
+
+  useEffect(() => {
+    if (window.instgrm) {
+      window.instgrm.Embeds.process();
+    }
+  }, [contents]);
+
+  const blockquoteStyle = {
+    background: "#FFF",
+    border: 0,
+    borderRadius: 3,
+    boxShadow: "0 0 1px 0 rgba(0,0,0,0.5),0 1px 10px 0 rgba(0,0,0,0.15)",
+    margin: "1px",
+    maxWidth: "540px",
+    minWidth: "326px",
+    padding: 0,
+    width: "99.375%",
+  };
+
+  const getTiktokId = (url) => {
+    // cari angka di akhir URL (video id)
+    const match = url.match(/(\d+)(?:\/)?$/);
+    return match ? match[1] : "";
+  };
+
   return (
     <div className="container-xxl bg-white p-0">
       {/* spinner */}
@@ -67,14 +163,37 @@ const Gallery = () => {
             <h1 className="mb-3 fw-bold text-primary">Gallery</h1>
           </div>
           <div className="row wow fadeInUp" data-wow-delay="0.3s">
-            <div className="col-12 text-center">
-              <ul className="list-inline rounded mb-5" id="portfolio-flters">
-                <li className="mx-2 active" data-filter="*">All</li>
-                <li className="mx-2" data-filter=".first">Facilities</li>
-                <li className="mx-2" data-filter=".second">Rooms</li>
+            <div className="col-12 text-center bg-blue-100">
+              <ul id="portfolio-flters" className="list-inline rounded mb-5">
+                <li
+                  className={`mx-2 ${filterKey === "*" ? "active" : ""}`}
+                  onClick={() => setFilterKey("*")}
+                >
+                  All
+                </li>
+                <li
+                  className={`mx-2 ${filterKey === ".first" ? "active" : ""}`}
+                  onClick={() => setFilterKey(".first")}
+                >
+                  Facilities
+                </li>
+                <li
+                  className={`mx-2 ${filterKey === ".second" ? "active" : ""}`}
+                  onClick={() => setFilterKey(".second")}
+                >
+                  Rooms
+                </li>
+                <li
+                  className={`mx-2 ${filterKey === ".thirt" ? "active" : ""}`}
+                  onClick={() => setFilterKey(".thirt")}
+                >
+                  Contents
+                </li>
               </ul>
             </div>
           </div>
+
+          {/*  Gallery start*/}
           <div className="row g-4 portfolio-container">
             <div className="col-lg-4 col-md-6 portfolio-item first wow fadeInUp" data-wow-delay="0.1s">
               <div className="portfolio-inner rounded">
@@ -175,10 +294,47 @@ const Gallery = () => {
                 </div>
               </div>
             </div>
-          </div>
+
+            {/* content start */}
+              {instaContents.map((item) => (
+                <div key={item.id} className="col-lg-4 col-md-6">
+                  <div className="portfolio-onner rounded">
+                    <blockquote
+                      className="instagram-media"
+                      data-instgrm-permalink={item.link}
+                      data-instgrm-version="14"
+                      style={blockquoteStyle}
+                    />
+                  </div>
+                </div>
+              ))}
+
+              {tiktokContents.map((item) => (
+                <div key={item.id} className="col-lg-4 col-md-6">
+                  <div className="portfolio-onner rounded">
+                    <blockquote
+                      className="tiktok-embed"
+                      cite={item.link}
+                      data-video-id={getTiktokId(item.link)}
+                      style={blockquoteStyle}
+                    >
+                      <section>
+                        <a href={item.link} target="_blank" rel="noopener noreferrer">
+                          Lihat postingan di TikTok
+                        </a>
+                      </section>
+                    </blockquote>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* content end */}
         </div>
       </div>
+      {/* gallery end */}
       {/* Projects End */}
+
       {/* footer start */}
 
       <div id="footer">
