@@ -11,7 +11,7 @@ export default function Sidebar() {
     // { path: "/dashboard", label: "Dashboard" },
     { path: "/room", label: "Rooms" },
     { path: "/bookings", label: "Bookings" },
-    { path: "/konten-management", label: "konten"}
+    { path: "/konten-management", label: "konten" }
   ];
 
   return (
@@ -27,9 +27,8 @@ export default function Sidebar() {
           <li className="nav-item" key={item.path}>
             <Link
               to={item.path}
-              className={`nav-link ${
-                location.pathname === item.path ? "active" : "text-white"
-              }`}
+              className={`nav-link ${location.pathname === item.path ? "active" : "text-white"
+                }`}
             >
               {item.label}
             </Link>

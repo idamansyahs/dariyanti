@@ -80,7 +80,12 @@ model Konten {
   id        Int      @id @default(autoincrement())
   link      String
   deskripsi String
-  platform  String
+  platform  KontenStatus @default(Instagram)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+enum KontenStatus {
+  Instagram
+  Tiktok
 }
