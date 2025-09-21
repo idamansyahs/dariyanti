@@ -4,6 +4,7 @@ import Layout from "../components/Layout";
 
 const RoomList = () => {
   const [rooms, setRooms] = useState([]);
+
   const [newRoom, setNewRoom] = useState({
     roomNumber: "",
     type: "",

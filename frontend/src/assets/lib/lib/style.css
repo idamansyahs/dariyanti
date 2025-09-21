@@ -55,6 +55,12 @@
     width: 50%;
 }
 
+.portfolio-onner blockquote {
+  display: block;
+  width: 100%;
+}
+
+
 .portfolio-inner .portfolio-text {
     position: absolute;
     width: 100%;
