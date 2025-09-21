@@ -2,7 +2,7 @@ import express from "express";
 import { login, profile } from "../controllers/AuthControllers.js";
 import { authMiddleware } from "../src/middleware/authMiddleware.js";
 import { getKonten, getKontenById, createKonten, updateKonten, deleteKonten } from "../controllers/KontenController.js";
-import { assignRoom, createBooking, createBookingUser, deleteBooking, getBookings, getPublicRooms, updateBooking, updateBookingStatus } from "../controllers/BookControllers.js";
+import { assignRoom, createBooking, createBookingUser, deleteBooking, getBookings, getPublicRooms, updateBooking, updateBookingStatus, available } from "../controllers/BookControllers.js";
 import { createRoom, deleteRoom, getRoomById, getRooms, updateRoom, updateRoomStatus } from "../controllers/RoomControllers.js";
 
 const router = express.Router();
@@ -36,6 +36,8 @@ router.put("/booking/:id", authMiddleware, updateBooking);
 router.put("/booking/:id/status", authMiddleware, updateBookingStatus);
 router.put("/booking/:id/assign-room", authMiddleware, assignRoom);
 router.delete("/booking/:id", authMiddleware, deleteBooking);
+
+router.get('/available', authMiddleware, available);
 
 /**
  * KONTEN

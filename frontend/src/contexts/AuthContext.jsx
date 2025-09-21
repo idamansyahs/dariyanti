@@ -48,7 +48,7 @@ export const AuthProvider = ({ children }) => {
       const profileRes = await api.get("/api/profile");
       setUser(profileRes.data);
 
-      navigate("/dashboard");
+      navigate("/room");
       setLoading(false);
     } catch (err) {
       setLoading(false);
