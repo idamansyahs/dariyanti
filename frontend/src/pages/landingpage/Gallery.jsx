@@ -5,95 +5,96 @@ import axios from "axios";
 
 const Gallery = () => {
 
+  // ==================================================================
+  // 1. STATE & REF MANAGEMENT (Sudah Disederhanakan)
+  // ==================================================================
   const iso = useRef(null);
+  const isotopeContainer = useRef(null);
   const [filterKey, setFilterKey] = useState("*");
-  const [contents, setContents] = useState([]);
-  const [instaContents, setInstaContents] = useState([]);
-  const [tiktokContents, setTiktokContents] = useState([]);
+  const [dynamicContents, setDynamicContents] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
+  // ==================================================================
+  // 2. DATA FETCHING (Hanya berjalan sekali saat komponen dimuat)
+  // ==================================================================
   useEffect(() => {
-    axios.get("http://localhost:5000/api/konten-user").then((res) => {
-      const data = res.data;
-
-      const ig = data
-        .filter((item) => item.platform.toLowerCase() === "instagram")
-        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-        .slice(0, 3);
-
-      const tt = data
-        .filter((item) => item.platform.toLowerCase() === "tiktok")
-        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-        .slice(0, 3);
-
-      setInstaContents(ig);
-      setTiktokContents(tt);
-    })
+    axios.get("http://localhost:5000/api/konten-user")
+      .then((res) => {
+        const allContents = res.data.map(item => ({ ...item, platform: item.platform.toLowerCase() }));
+        setDynamicContents(allContents);
+        setIsLoading(false);
+      })
+      .catch(err => {
+        console.error("Gagal mengambil data:", err);
+        setIsLoading(false);
+      });
   }, []);
 
+  // ==================================================================
+  // 3. ISOTOPE & EMBED LOGIC
+  // ==================================================================
+  // Efek ini menangani inisialisasi Isotope dan memuat ulang item
+  // TEPAT SETELAH data dari API selesai dimuat.
   useEffect(() => {
-    // pastikan script embed Instagram sudah ada
+    // Muat script embed pihak ketiga (Instagram & TikTok)
     if (!document.getElementById("instgrm-script")) {
       const s = document.createElement("script");
-      s.id = "instgrm-script";
-      s.src = "https://www.instagram.com/embed.js";
-      s.async = true;
+      s.id = "instgrm-script"; s.src = "https://www.instagram.com/embed.js"; s.async = true;
       document.body.appendChild(s);
-    } else if (window.instgrm) {
-      window.instgrm.Embeds.process();
     }
-  }, []);
-
-
-  useEffect(() => {
-    // Pastikan script TikTok embed sudah dimuat
     if (!document.getElementById("tiktok-embed-script")) {
       const s = document.createElement("script");
-      s.id = "tiktok-embed-script";
-      s.src = "https://www.tiktok.com/embed.js";
-      s.async = true;
+      s.id = "tiktok-embed-script"; s.src = "https://www.tiktok.com/embed.js"; s.async = true;
       document.body.appendChild(s);
-    } else if (window.tiktokEmbed) {
-      window.tiktokEmbed(); // kalau ada API-nya
     }
-  }, []);
 
-  useEffect(() => {
-    // inisialisasi Isotope hanya sekali, setelah DOM render
-    iso.current = new Isotope(".portfolio-container", {
-      itemSelector: ".portfolio-item",
-      layoutMode: "fitRows",
-    });
+    // Inisialisasi Isotope jika belum ada
+    if (!iso.current && isotopeContainer.current) {
+      iso.current = new Isotope(isotopeContainer.current, {
+        itemSelector: ".portfolio-item",
+        layoutMode: "fitRows",
+      });
+    }
 
-    return () => iso.current?.destroy();
-  }, []);
+    // Jika data SUDAH SELESAI dimuat, lakukan proses penting ini SEKALI SAJA
+    if (!isLoading && iso.current) {
+      // Proses embed agar konten IG/TikTok muncul
+      if (window.instgrm) {
+        window.instgrm.Embeds.process();
+      }
 
-  // setiap kali filterKey berubah, atur ulang item
+      // Beri tahu Isotope untuk mengenali item baru yang dinamis
+      iso.current.reloadItems();
+      // Susun ulang semua item sesuai filter awal ("*")
+      iso.current.arrange({ filter: filterKey });
+    }
+
+    // Cleanup saat komponen dibongkar/unmount
+    return () => {
+      if (iso.current) {
+        iso.current.destroy();
+        iso.current = null;
+      }
+    };
+  }, [isLoading]); // <-- KUNCI: Efek ini HANYA bergantung pada `isLoading`
+
+  // ==================================================================
+  // 4. FILTERING LOGIC (Hanya berjalan saat filterKey berubah)
+  // ==================================================================
   useEffect(() => {
     if (iso.current) {
       iso.current.arrange({ filter: filterKey });
     }
-  }, [filterKey]);
+  }, [filterKey]); // <-- KUNCI: Efek ini HANYA untuk memfilter
 
-  useEffect(() => {
-    if (window.instgrm) {
-      window.instgrm.Embeds.process();
-    }
-  }, [contents]);
-
+  // Helper function & style
   const blockquoteStyle = {
-    background: "#FFF",
-    border: 0,
-    borderRadius: 3,
+    background: "#FFF", border: 0, borderRadius: 3,
     boxShadow: "0 0 1px 0 rgba(0,0,0,0.5),0 1px 10px 0 rgba(0,0,0,0.15)",
-    margin: "1px",
-    maxWidth: "540px",
-    minWidth: "326px",
-    padding: 0,
-    width: "99.375%",
+    margin: "1px", maxWidth: "540px", minWidth: "326px", padding: 0,
+    width: "calc(100% - 2px)",
   };
-
   const getTiktokId = (url) => {
-    // cari angka di akhir URL (video id)
     const match = url.match(/(\d+)(?:\/)?$/);
     return match ? match[1] : "";
   };
@@ -165,28 +166,16 @@ const Gallery = () => {
           <div className="row wow fadeInUp" data-wow-delay="0.3s">
             <div className="col-12 text-center bg-blue-100">
               <ul id="portfolio-flters" className="list-inline rounded mb-5">
-                <li
-                  className={`mx-2 ${filterKey === "*" ? "active" : ""}`}
-                  onClick={() => setFilterKey("*")}
-                >
+                <li className={`mx-2 ${filterKey === "*" ? "active" : ""}`} onClick={() => setFilterKey("*")}>
                   All
                 </li>
-                <li
-                  className={`mx-2 ${filterKey === ".first" ? "active" : ""}`}
-                  onClick={() => setFilterKey(".first")}
-                >
+                <li className={`mx-2 ${filterKey === ".first" ? "active" : ""}`} onClick={() => setFilterKey(".first")}>
                   Facilities
                 </li>
-                <li
-                  className={`mx-2 ${filterKey === ".second" ? "active" : ""}`}
-                  onClick={() => setFilterKey(".second")}
-                >
+                <li className={`mx-2 ${filterKey === ".second" ? "active" : ""}`} onClick={() => setFilterKey(".second")}>
                   Rooms
                 </li>
-                <li
-                  className={`mx-2 ${filterKey === ".thirt" ? "active" : ""}`}
-                  onClick={() => setFilterKey(".thirt")}
-                >
+                <li className={`mx-2 ${filterKey === ".thirt" ? "active" : ""}`} onClick={() => setFilterKey(".thirt")}>
                   Contents
                 </li>
               </ul>
@@ -194,7 +183,7 @@ const Gallery = () => {
           </div>
 
           {/*  Gallery start*/}
-          <div className="row g-4 portfolio-container">
+          <div ref={isotopeContainer} className="row g-4 portfolio-container">
             <div className="col-lg-4 col-md-6 portfolio-item first wow fadeInUp" data-wow-delay="0.1s">
               <div className="portfolio-inner rounded">
                 <img className="img-fluid" src="/src/assets/img/gallery/1.jpg" alt="" />
@@ -296,9 +285,10 @@ const Gallery = () => {
             </div>
 
             {/* content start */}
-              {instaContents.map((item) => (
-                <div key={item.id} className="col-lg-4 col-md-6">
-                  <div className="portfolio-onner rounded">
+            {!isLoading && dynamicContents.map((item) => {
+              if (item.platform === "instagram") {
+                return (
+                  <div key={item.id} className="col-lg-4 col-md-6 portfolio-item thirt wow fadeInUp" data-wow-delay="0.1s">
                     <blockquote
                       className="instagram-media"
                       data-instgrm-permalink={item.link}
@@ -306,30 +296,27 @@ const Gallery = () => {
                       style={blockquoteStyle}
                     />
                   </div>
-                </div>
-              ))}
-
-              {tiktokContents.map((item) => (
-                <div key={item.id} className="col-lg-4 col-md-6">
-                  <div className="portfolio-onner rounded">
+                );
+              }
+              if (item.platform === "tiktok") {
+                return (
+                  <div key={item.id} className="col-lg-4 col-md-6 portfolio-item thirt wow fadeInUp" data-wow-delay="0.1s">
                     <blockquote
                       className="tiktok-embed"
                       cite={item.link}
                       data-video-id={getTiktokId(item.link)}
-                      style={blockquoteStyle}
+                      style={{ ...blockquoteStyle, minHeight: '500px' }} // TikTok perlu tinggi minimum
                     >
-                      <section>
-                        <a href={item.link} target="_blank" rel="noopener noreferrer">
-                          Lihat postingan di TikTok
-                        </a>
-                      </section>
+                      <section></section>
                     </blockquote>
                   </div>
-                </div>
-              ))}
-            </div>
+                );
+              }
+              return null;
+            })}
+          </div>
 
-            {/* content end */}
+          {/* content end */}
         </div>
       </div>
       {/* gallery end */}

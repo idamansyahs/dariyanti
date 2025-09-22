@@ -852,6 +852,14 @@ h1 {
   font-size: 40px;
 }
 
+/* Content Sytle */
+
+/* Tambahkan ruang di bawah galeri */
+.container-xxl.py-5 {
+  padding-bottom: 250px !important; 
+}
+
+
 @media screen and (max-width: 600px) {
   h1 {
     font-size: 30px;
