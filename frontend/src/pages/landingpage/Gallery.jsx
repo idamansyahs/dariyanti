@@ -13,21 +13,29 @@ const Gallery = () => {
   const [filterKey, setFilterKey] = useState("*");
   const [dynamicContents, setDynamicContents] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [instaContents, setInstaContents] = useState([]);
+  const [tiktokContents, setTiktokContents] = useState([]);
 
   // ==================================================================
   // 2. DATA FETCHING (Hanya berjalan sekali saat komponen dimuat)
   // ==================================================================
   useEffect(() => {
-    axios.get("http://localhost:5000/api/konten-user")
-      .then((res) => {
-        const allContents = res.data.map(item => ({ ...item, platform: item.platform.toLowerCase() }));
-        setDynamicContents(allContents);
-        setIsLoading(false);
-      })
-      .catch(err => {
-        console.error("Gagal mengambil data:", err);
-        setIsLoading(false);
-      });
+    axios.get("http://localhost:5000/api/konten-user").then((res) => {
+      const data = res.data;
+
+      const ig = data
+        .filter((item) => item.platform.toLowerCase() === "instagram")
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        .slice(0, 3);
+
+      const tt = data
+        .filter((item) => item.platform.toLowerCase() === "tiktok")
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        .slice(0, 3);
+
+      setInstaContents(ig);
+      setTiktokContents(tt);
+    })
   }, []);
 
   // ==================================================================
@@ -67,6 +75,8 @@ const Gallery = () => {
       iso.current.reloadItems();
       // Susun ulang semua item sesuai filter awal ("*")
       iso.current.arrange({ filter: filterKey });
+
+      iso.current.layout()
     }
 
     // Cleanup saat komponen dibongkar/unmount
@@ -93,6 +103,7 @@ const Gallery = () => {
     boxShadow: "0 0 1px 0 rgba(0,0,0,0.5),0 1px 10px 0 rgba(0,0,0,0.15)",
     margin: "1px", maxWidth: "540px", minWidth: "326px", padding: 0,
     width: "calc(100% - 2px)",
+    minHeight: "400px"
   };
   const getTiktokId = (url) => {
     const match = url.match(/(\d+)(?:\/)?$/);
@@ -285,36 +296,38 @@ const Gallery = () => {
             </div>
 
             {/* content start */}
-            {!isLoading && dynamicContents.map((item) => {
-              if (item.platform === "instagram") {
-                return (
-                  <div key={item.id} className="col-lg-4 col-md-6 portfolio-item thirt wow fadeInUp" data-wow-delay="0.1s">
-                    <blockquote
-                      className="instagram-media"
-                      data-instgrm-permalink={item.link}
-                      data-instgrm-version="14"
-                      style={blockquoteStyle}
-                    />
-                  </div>
-                );
-              }
-              if (item.platform === "tiktok") {
-                return (
-                  <div key={item.id} className="col-lg-4 col-md-6 portfolio-item thirt wow fadeInUp" data-wow-delay="0.1s">
-                    <blockquote
-                      className="tiktok-embed"
-                      cite={item.link}
-                      data-video-id={getTiktokId(item.link)}
-                      style={{ ...blockquoteStyle, minHeight: '500px' }} // TikTok perlu tinggi minimum
-                    >
-                      <section></section>
-                    </blockquote>
-                  </div>
-                );
-              }
-              return null;
-            })}
-          </div>
+            {instaContents.map((item) => (
+              <div key={item.id} className="col-lg-4 col-md-6 portfolio-item thirt">
+                <div className="portfolio-onner rounded">
+                  <blockquote
+                    className="instagram-media"
+                    data-instgrm-permalink={item.link}
+                    data-instgrm-version="14"
+                    style={blockquoteStyle}
+                  />
+                </div>
+              </div>
+            ))}
+
+            {tiktokContents.map((item) => (
+              <div key={item.id} className="col-lg-4 col-md-6 portfolio-item thirt">
+                <div className="portfolio-onner rounded">
+                  <blockquote
+                    className="tiktok-embed"
+                    cite={item.link}
+                    data-video-id={getTiktokId(item.link)}
+                    style={blockquoteStyle}
+                  >
+                    <section>
+                      <a href={item.link} target="_blank" rel="noopener noreferrer">
+                        Lihat postingan di TikTok
+                      </a>
+                    </section>
+                  </blockquote>
+                </div>
+              </div>
+            ))}
+          </div >
 
           {/* content end */}
         </div>

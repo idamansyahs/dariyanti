@@ -5,24 +5,31 @@ import axios from "axios";
 
 const LavaGallery = () => {
   const iso = useRef(null);
-    const isotopeContainer = useRef(null);
-    const [filterKey, setFilterKey] = useState("*");
-    const [dynamicContents, setDynamicContents] = useState([]);
-      const [isLoading, setIsLoading] = useState(true)
+  const isotopeContainer = useRef(null);
+  const [filterKey, setFilterKey] = useState("*");
+  const [contents, setContents] = useState([]);
+  const [instaContents, setInstaContents] = useState([]);
+  const [tiktokContents, setTiktokContents] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
 
-    useEffect(() => {
-    axios.get("http://localhost:5000/api/konten-user")
-      .then((res) => {
-        const allContents = res.data.map(item => ({ ...item, platform: item.platform.toLowerCase() }));
-        setDynamicContents(allContents);
-        setIsLoading(false);
-      })
-      .catch(err => {
-        console.error("Gagal mengambil data:", err);
-        setIsLoading(false);
-      });
+  useEffect(() => {
+    axios.get("http://localhost:5000/api/konten-user").then((res) => {
+      const data = res.data;
+
+      const ig = data
+        .filter((item) => item.platform.toLowerCase() === "instagram")
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        .slice(0, 3);
+
+      const tt = data
+        .filter((item) => item.platform.toLowerCase() === "tiktok")
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        .slice(0, 3);
+
+      setInstaContents(ig);
+      setTiktokContents(tt);
+    })
   }, []);
-
 
   useEffect(() => {
     // pastikan script embed Instagram sudah ada
@@ -38,7 +45,7 @@ const LavaGallery = () => {
   }, []);
 
 
- useEffect(() => {
+  useEffect(() => {
     // Muat script embed pihak ketiga (Instagram & TikTok)
     if (!document.getElementById("instgrm-script")) {
       const s = document.createElement("script");
@@ -81,11 +88,11 @@ const LavaGallery = () => {
     };
   }, [isLoading]); // <-- KUNCI: Efek ini HANYA bergantung pada `isLoading`
 
-   useEffect(() => {
-      if (iso.current) {
-        iso.current.arrange({ filter: filterKey });
-      }
-    }, [filterKey]); // <-- KUNCI: Efek ini HANYA untuk memfilter
+  useEffect(() => {
+    if (iso.current) {
+      iso.current.arrange({ filter: filterKey });
+    }
+  }, [filterKey]); // <-- KUNCI: Efek ini HANYA untuk memfilter
 
   // setiap kali filterKey berubah, atur ulang item
   useEffect(() => {
@@ -99,9 +106,12 @@ const LavaGallery = () => {
     background: "#FFF", border: 0, borderRadius: 3,
     boxShadow: "0 0 1px 0 rgba(0,0,0,0.5),0 1px 10px 0 rgba(0,0,0,0.15)",
     margin: "1px", maxWidth: "540px", minWidth: "326px", padding: 0,
-    width: "calc(100% - 2px)",
+    width: "99.375%",
   };
+
+
   const getTiktokId = (url) => {
+    // cari angka di akhir URL (video id)
     const match = url.match(/(\d+)(?:\/)?$/);
     return match ? match[1] : "";
   };
@@ -294,42 +304,43 @@ const LavaGallery = () => {
             </div>
 
             {/* content start */}
-            {!isLoading && dynamicContents.map((item) => {
-              if (item.platform === "instagram") {
-                return (
-                  <div key={item.id} className="col-lg-4 col-md-6 portfolio-item thirt wow fadeInUp" data-wow-delay="0.1s">
-                    <blockquote
-                      className="instagram-media"
-                      data-instgrm-permalink={item.link}
-                      data-instgrm-version="14"
-                      style={blockquoteStyle}
-                    />
-                  </div>
-                );
-              }
-              if (item.platform === "tiktok") {
-                return (
-                  <div key={item.id} className="col-lg-4 col-md-6 portfolio-item thirt wow fadeInUp" data-wow-delay="0.1s">
-                    <blockquote
-                      className="tiktok-embed"
-                      cite={item.link}
-                      data-video-id={getTiktokId(item.link)}
-                      style={{ ...blockquoteStyle, minHeight: '500px' }} // TikTok perlu tinggi minimum
-                    >
-                      <section></section>
-                    </blockquote>
-                  </div>
-                );
-              }
-              return null;
-            })}
-          </div>
+            {instaContents.map((item) => (
+              <div key={item.id} className="col-lg-4 col-md-6">
+                <div className="portfolio-onner rounded">
+                  <blockquote
+                    className="instagram-media"
+                    data-instgrm-permalink={item.link}
+                    data-instgrm-version="14"
+                    style={blockquoteStyle}
+                  />
+                </div>
+              </div>
+            ))}
+
+            {tiktokContents.map((item) => (
+              <div key={item.id} className="col-lg-4 col-md-6">
+                <div className="portfolio-onner rounded">
+                  <blockquote
+                    className="tiktok-embed"
+                    cite={item.link}
+                    data-video-id={getTiktokId(item.link)}
+                    style={blockquoteStyle}
+                  >
+                    <section>
+                      <a href={item.link} target="_blank" rel="noopener noreferrer">
+                        Lihat postingan di TikTok
+                      </a>
+                    </section>
+                  </blockquote>
+                </div>
+              </div>
+            ))}
+          </div >
 
           {/* content end */}
-        </div>
-      </div>
+        </div >
+      </div >
       {/* gallery end */}
-      {/* Projects End */}
       {/* Projects End */}
 
       {/* footer start */}
@@ -394,7 +405,7 @@ const LavaGallery = () => {
       </div>
       {/* footer end */}
 
-    </div>
+    </div >
   )
 }
 
