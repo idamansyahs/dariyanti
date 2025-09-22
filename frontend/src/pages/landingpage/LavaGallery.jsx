@@ -1,10 +1,33 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Link } from 'react-router-dom'
 import Isotope from "isotope-layout";
+import axios from "axios";
 
 const LavaGallery = () => {
   const iso = useRef(null);
   const [filterKey, setFilterKey] = useState("*");
+  const [contents, setContents] = useState([]);
+  const [instaContents, setInstaContents] = useState([]);
+  const [tiktokContents, setTiktokContents] = useState([]);
+
+  useEffect(() => {
+    axios.get("http://localhost:5000/api/konten-user").then((res) => {
+      const data = res.data;
+
+      const ig = data
+        .filter((item) => item.platform.toLowerCase() === "instagram")
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        .slice(0, 3);
+
+      const tt = data
+        .filter((item) => item.platform.toLowerCase() === "tiktok")
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        .slice(0, 3);
+
+      setInstaContents(ig);
+      setTiktokContents(tt);
+    })
+  }, []);
 
   useEffect(() => {
     // pastikan script embed Instagram sudah ada
@@ -49,6 +72,30 @@ const LavaGallery = () => {
       iso.current.arrange({ filter: filterKey });
     }
   }, [filterKey]);
+
+  useEffect(() => {
+    if (window.instgrm) {
+      window.instgrm.Embeds.process();
+    }
+  }, [contents]);
+
+  const blockquoteStyle = {
+    background: "#FFF",
+    border: 0,
+    borderRadius: 3,
+    boxShadow: "0 0 1px 0 rgba(0,0,0,0.5),0 1px 10px 0 rgba(0,0,0,0.15)",
+    margin: "1px",
+    maxWidth: "540px",
+    minWidth: "326px",
+    padding: 0,
+    width: "99.375%",
+  };
+
+  const getTiktokId = (url) => {
+    // cari angka di akhir URL (video id)
+    const match = url.match(/(\d+)(?:\/)?$/);
+    return match ? match[1] : "";
+  };
 
   return (
     <div className="container-xxl bg-white p-0">
@@ -250,61 +297,40 @@ const LavaGallery = () => {
             </div>
 
             {/* content start */}
-
-            <div className="col-lg-4 col-md-6 portfolio-item thirt wow fadeInUp">
-              <div className="portfolio-onner rounded">
-                <blockquote
-                  className="instagram-media"
-                  data-instgrm-permalink="https://www.instagram.com/reel/C8uSN4kh1Oe/?utm_source=ig_embed&amp;utm_campaign=loading"
-                  data-instgrm-version="14"
-                  style={{
-                    background: "#FFF",
-                    border: 0,
-                    borderRadius: 3,
-                    boxShadow:
-                      "0 0 1px 0 rgba(0,0,0,0.5),0 1px 10px 0 rgba(0,0,0,0.15)",
-                    margin: "1px",
-                    maxWidth: "540px",
-                    minWidth: "326px",
-                    padding: 0,
-                    width: "99.375%",
-                  }}
-                ></blockquote>
+            {instaContents.map((item) => (
+              <div key={item.id} className="col-lg-4 col-md-6">
+                <div className="portfolio-onner rounded">
+                  <blockquote
+                    className="instagram-media"
+                    data-instgrm-permalink={item.link}
+                    data-instgrm-version="14"
+                    style={blockquoteStyle}
+                  />
+                </div>
               </div>
-            </div>
+            ))}
 
-
-            <div className="col-lg-4 col-md-6 portfolio-item thirt wow fadeInUp">
-              <div className="portfolio-onner rounded">
-                <blockquote
-                  className="tiktok-embed"
-                  cite="https://www.tiktok.com/@fhandikaboutique.inc/photo/7508680948670565637"
-                  data-video-id="7508680948670565637"
-                  style={{
-                    background: "#FFF",
-                    border: 0,
-                    borderRadius: 3,
-                    boxShadow:
-                      "0 0 1px 0 rgba(0,0,0,0.5),0 1px 10px 0 rgba(0,0,0,0.15)",
-                    margin: "1px",
-                    maxWidth: "540px",
-                    minWidth: "326px",
-                    padding: 0,
-                    width: "99.375%",
-                  }}
-                >
-                  <section> {/* placeholder konten kalau embed gagal */}
-                    <a href="https://www.tiktok.com/@fhandikaboutique.inc/photo/7508680948670565637">
-                      View this post on TikTok
-                    </a>
-                  </section>
-
-                </blockquote>
+            {tiktokContents.map((item) => (
+              <div key={item.id} className="col-lg-4 col-md-6">
+                <div className="portfolio-onner rounded">
+                  <blockquote
+                    className="tiktok-embed"
+                    cite={item.link}
+                    data-video-id={getTiktokId(item.link)}
+                    style={blockquoteStyle}
+                  >
+                    <section>
+                      <a href={item.link} target="_blank" rel="noopener noreferrer">
+                        Lihat postingan di TikTok
+                      </a>
+                    </section>
+                  </blockquote>
+                </div>
               </div>
-            </div>
-
-            {/* content end */}
+            ))}
           </div>
+
+          {/* content end */}
         </div>
       </div>
 
