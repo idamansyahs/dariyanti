@@ -1,10 +1,28 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Link } from 'react-router-dom'
 import Isotope from "isotope-layout";
+import axios from "axios";
 
 const LavaGallery = () => {
   const iso = useRef(null);
-  const [filterKey, setFilterKey] = useState("*");
+    const isotopeContainer = useRef(null);
+    const [filterKey, setFilterKey] = useState("*");
+    const [dynamicContents, setDynamicContents] = useState([]);
+      const [isLoading, setIsLoading] = useState(true)
+
+    useEffect(() => {
+    axios.get("http://localhost:5000/api/konten-user")
+      .then((res) => {
+        const allContents = res.data.map(item => ({ ...item, platform: item.platform.toLowerCase() }));
+        setDynamicContents(allContents);
+        setIsLoading(false);
+      })
+      .catch(err => {
+        console.error("Gagal mengambil data:", err);
+        setIsLoading(false);
+      });
+  }, []);
+
 
   useEffect(() => {
     // pastikan script embed Instagram sudah ada
@@ -20,28 +38,54 @@ const LavaGallery = () => {
   }, []);
 
 
-  useEffect(() => {
-    // Pastikan script TikTok embed sudah dimuat
+ useEffect(() => {
+    // Muat script embed pihak ketiga (Instagram & TikTok)
+    if (!document.getElementById("instgrm-script")) {
+      const s = document.createElement("script");
+      s.id = "instgrm-script"; s.src = "https://www.instagram.com/embed.js"; s.async = true;
+      document.body.appendChild(s);
+    }
     if (!document.getElementById("tiktok-embed-script")) {
       const s = document.createElement("script");
-      s.id = "tiktok-embed-script";
-      s.src = "https://www.tiktok.com/embed.js";
-      s.async = true;
+      s.id = "tiktok-embed-script"; s.src = "https://www.tiktok.com/embed.js"; s.async = true;
       document.body.appendChild(s);
-    } else if (window.tiktokEmbed) {
-      window.tiktokEmbed(); // kalau ada API-nya
     }
-  }, []);
 
-  useEffect(() => {
-    // inisialisasi Isotope hanya sekali, setelah DOM render
-    iso.current = new Isotope(".portfolio-container", {
-      itemSelector: ".portfolio-item",
-      layoutMode: "fitRows",
-    });
+    // Inisialisasi Isotope jika belum ada
+    if (!iso.current && isotopeContainer.current) {
+      iso.current = new Isotope(isotopeContainer.current, {
+        itemSelector: ".portfolio-item",
+        layoutMode: "fitRows",
+      });
+    }
 
-    return () => iso.current?.destroy();
-  }, []);
+    // Jika data SUDAH SELESAI dimuat, lakukan proses penting ini SEKALI SAJA
+    if (!isLoading && iso.current) {
+      // Proses embed agar konten IG/TikTok muncul
+      if (window.instgrm) {
+        window.instgrm.Embeds.process();
+      }
+
+      // Beri tahu Isotope untuk mengenali item baru yang dinamis
+      iso.current.reloadItems();
+      // Susun ulang semua item sesuai filter awal ("*")
+      iso.current.arrange({ filter: filterKey });
+    }
+
+    // Cleanup saat komponen dibongkar/unmount
+    return () => {
+      if (iso.current) {
+        iso.current.destroy();
+        iso.current = null;
+      }
+    };
+  }, [isLoading]); // <-- KUNCI: Efek ini HANYA bergantung pada `isLoading`
+
+   useEffect(() => {
+      if (iso.current) {
+        iso.current.arrange({ filter: filterKey });
+      }
+    }, [filterKey]); // <-- KUNCI: Efek ini HANYA untuk memfilter
 
   // setiap kali filterKey berubah, atur ulang item
   useEffect(() => {
@@ -49,6 +93,18 @@ const LavaGallery = () => {
       iso.current.arrange({ filter: filterKey });
     }
   }, [filterKey]);
+
+  // Helper function & style
+  const blockquoteStyle = {
+    background: "#FFF", border: 0, borderRadius: 3,
+    boxShadow: "0 0 1px 0 rgba(0,0,0,0.5),0 1px 10px 0 rgba(0,0,0,0.15)",
+    margin: "1px", maxWidth: "540px", minWidth: "326px", padding: 0,
+    width: "calc(100% - 2px)",
+  };
+  const getTiktokId = (url) => {
+    const match = url.match(/(\d+)(?:\/)?$/);
+    return match ? match[1] : "";
+  };
 
   return (
     <div className="container-xxl bg-white p-0">
@@ -71,12 +127,12 @@ const LavaGallery = () => {
           </button>
           <div className="collapse navbar-collapse" id="navbarCollapse">
             <div className="navbar-nav ms-auto py-0 pe-4">
-              <Link to="/" className="nav-item nav-link active">Home</Link>
+              <Link to="/" className="nav-item nav-link">Home</Link>
               <Link to="/about" className="nav-item nav-link">About</Link>
 
               {/* Dropdown */}
               <div className="nav-item dropdown">
-                <a href="#" className="nav-link dropdown-toggle" data-bs-toggle="dropdown">Lava.</a>
+                <a href="#" className="nav-link dropdown-toggle active" data-bs-toggle="dropdown">Lava.</a>
                 <div className="dropdown-menu bg-light m-0">
                   <Link to="/lava" className="dropdown-item">About Lava.</Link>
                   <Link to="/lava-gallery" className="dropdown-item">Gallery Lava.</Link>
@@ -96,7 +152,7 @@ const LavaGallery = () => {
 
         <div className="container-xxl py-5 bg-dark hero-header mb-5">
           <div className="container text-center my-5 pt-5 pb-4">
-            <h1 className="display-3 text-white mb-3 animated slideInDown">Gallery Lava.</h1>
+            <h1 className="display-3 text-white mb-3 animated slideInDown active">Gallery Lava.</h1>
             <nav aria-label="breadcrumb">
               <ol className="breadcrumb justify-content-center text-uppercase">
                 <li className="breadcrumb-item"><Link to="/" className="nav-item nav-link active">Home</Link></li>
@@ -119,28 +175,16 @@ const LavaGallery = () => {
           <div className="row wow fadeInUp" data-wow-delay="0.3s">
             <div className="col-12 text-center bg-blue-100">
               <ul id="portfolio-flters" className="list-inline rounded mb-5">
-                <li
-                  className={`mx-2 ${filterKey === "*" ? "active" : ""}`}
-                  onClick={() => setFilterKey("*")}
-                >
+                <li className={`mx-2 ${filterKey === "*" ? "active" : ""}`} onClick={() => setFilterKey("*")}>
                   All
                 </li>
-                <li
-                  className={`mx-2 ${filterKey === ".first" ? "active" : ""}`}
-                  onClick={() => setFilterKey(".first")}
-                >
+                <li className={`mx-2 ${filterKey === ".first" ? "active" : ""}`} onClick={() => setFilterKey(".first")}>
                   Facilities
                 </li>
-                <li
-                  className={`mx-2 ${filterKey === ".second" ? "active" : ""}`}
-                  onClick={() => setFilterKey(".second")}
-                >
+                <li className={`mx-2 ${filterKey === ".second" ? "active" : ""}`} onClick={() => setFilterKey(".second")}>
                   Rooms
                 </li>
-                <li
-                  className={`mx-2 ${filterKey === ".thirt" ? "active" : ""}`}
-                  onClick={() => setFilterKey(".thirt")}
-                >
+                <li className={`mx-2 ${filterKey === ".thirt" ? "active" : ""}`} onClick={() => setFilterKey(".thirt")}>
                   Contents
                 </li>
               </ul>
@@ -148,7 +192,7 @@ const LavaGallery = () => {
           </div>
 
           {/*  Gallery start*/}
-          <div className="row g-4 portfolio-container">
+          <div ref={isotopeContainer} className="row g-4 portfolio-container">
             <div className="col-lg-4 col-md-6 portfolio-item first wow fadeInUp" data-wow-delay="0.1s">
               <div className="portfolio-inner rounded">
                 <img className="img-fluid" src="/src/assets/img/gallery/1.jpg" alt="" />
@@ -250,64 +294,42 @@ const LavaGallery = () => {
             </div>
 
             {/* content start */}
-
-            <div className="col-lg-4 col-md-6 portfolio-item thirt wow fadeInUp">
-              <div className="portfolio-onner rounded">
-                <blockquote
-                  className="instagram-media"
-                  data-instgrm-permalink="https://www.instagram.com/reel/C8uSN4kh1Oe/?utm_source=ig_embed&amp;utm_campaign=loading"
-                  data-instgrm-version="14"
-                  style={{
-                    background: "#FFF",
-                    border: 0,
-                    borderRadius: 3,
-                    boxShadow:
-                      "0 0 1px 0 rgba(0,0,0,0.5),0 1px 10px 0 rgba(0,0,0,0.15)",
-                    margin: "1px",
-                    maxWidth: "540px",
-                    minWidth: "326px",
-                    padding: 0,
-                    width: "99.375%",
-                  }}
-                ></blockquote>
-              </div>
-            </div>
-
-
-            <div className="col-lg-4 col-md-6 portfolio-item thirt wow fadeInUp">
-              <div className="portfolio-onner rounded">
-                <blockquote
-                  className="tiktok-embed"
-                  cite="https://www.tiktok.com/@fhandikaboutique.inc/photo/7508680948670565637"
-                  data-video-id="7508680948670565637"
-                  style={{
-                    background: "#FFF",
-                    border: 0,
-                    borderRadius: 3,
-                    boxShadow:
-                      "0 0 1px 0 rgba(0,0,0,0.5),0 1px 10px 0 rgba(0,0,0,0.15)",
-                    margin: "1px",
-                    maxWidth: "540px",
-                    minWidth: "326px",
-                    padding: 0,
-                    width: "99.375%",
-                  }}
-                >
-                  <section> {/* placeholder konten kalau embed gagal */}
-                    <a href="https://www.tiktok.com/@fhandikaboutique.inc/photo/7508680948670565637">
-                      View this post on TikTok
-                    </a>
-                  </section>
-
-                </blockquote>
-              </div>
-            </div>
-
-            {/* content end */}
+            {!isLoading && dynamicContents.map((item) => {
+              if (item.platform === "instagram") {
+                return (
+                  <div key={item.id} className="col-lg-4 col-md-6 portfolio-item thirt wow fadeInUp" data-wow-delay="0.1s">
+                    <blockquote
+                      className="instagram-media"
+                      data-instgrm-permalink={item.link}
+                      data-instgrm-version="14"
+                      style={blockquoteStyle}
+                    />
+                  </div>
+                );
+              }
+              if (item.platform === "tiktok") {
+                return (
+                  <div key={item.id} className="col-lg-4 col-md-6 portfolio-item thirt wow fadeInUp" data-wow-delay="0.1s">
+                    <blockquote
+                      className="tiktok-embed"
+                      cite={item.link}
+                      data-video-id={getTiktokId(item.link)}
+                      style={{ ...blockquoteStyle, minHeight: '500px' }} // TikTok perlu tinggi minimum
+                    >
+                      <section></section>
+                    </blockquote>
+                  </div>
+                );
+              }
+              return null;
+            })}
           </div>
+
+          {/* content end */}
         </div>
       </div>
-
+      {/* gallery end */}
+      {/* Projects End */}
       {/* Projects End */}
 
       {/* footer start */}

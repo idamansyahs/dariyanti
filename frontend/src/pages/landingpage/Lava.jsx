@@ -23,12 +23,12 @@ const Lava = () => {
           </button>
           <div className="collapse navbar-collapse" id="navbarCollapse">
             <div className="navbar-nav ms-auto py-0 pe-4">
-              <Link to="/" className="nav-item nav-link active">Home</Link>
+              <Link to="/" className="nav-item nav-link">Home</Link>
               <Link to="/about" className="nav-item nav-link">About</Link>
 
               {/* Dropdown */}
               <div className="nav-item dropdown">
-                <a href="#" className="nav-link dropdown-toggle" data-bs-toggle="dropdown">Lava.</a>
+                <a href="#" className="nav-link dropdown-toggle active" data-bs-toggle="dropdown">Lava.</a>
                 <div className="dropdown-menu bg-light m-0">
                   <Link to="/lava" className="dropdown-item">About Lava.</Link>
                   <Link to="/lava-gallery" className="dropdown-item">Gallery Lava.</Link>

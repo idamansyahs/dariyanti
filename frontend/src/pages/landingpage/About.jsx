@@ -15,8 +15,8 @@ const About = () => {
                     </button>
                     <div className="collapse navbar-collapse" id="navbarCollapse">
                         <div className="navbar-nav ms-auto py-0 pe-4">
-                            <Link to="/" className="nav-item nav-link active">Home</Link>
-                            <Link to="/about" className="nav-item nav-link">About</Link>
+                            <Link to="/" className="nav-item nav-link">Home</Link>
+                            <Link to="/about" className="nav-item nav-link active">About</Link>
 
                             {/* Dropdown */}
                             <div className="nav-item dropdown">

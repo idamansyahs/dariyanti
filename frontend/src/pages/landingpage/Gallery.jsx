@@ -120,7 +120,7 @@ const Gallery = () => {
           </button>
           <div className="collapse navbar-collapse" id="navbarCollapse">
             <div className="navbar-nav ms-auto py-0 pe-4">
-              <Link to="/" className="nav-item nav-link active">Home</Link>
+              <Link to="/" className="nav-item nav-link">Home</Link>
               <Link to="/about" className="nav-item nav-link">About</Link>
 
               {/* Dropdown */}
@@ -135,7 +135,7 @@ const Gallery = () => {
 
               <Link to="/attraction" className="nav-item nav-link">Attraction</Link>
               <Link to="/rooms" className="nav-item nav-link">Rooms</Link>
-              <Link to="/gallery" className="nav-item nav-link">Gallery</Link>
+              <Link to="/gallery" className="nav-item nav-link active">Gallery</Link>
               <Link to="/contact" className="nav-item nav-link">Contact</Link>
 
               <Link to="/login" className="nav-item nav-link">Login</Link>

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 
 const Menu = () => {
   return (
-    <div className="container-xxl bg-white p-0">
+    <div className="container-xxl bg-black p-0">
       {/* spinner */}
       {/* <div id="spinner" className="show bg-white position-fixed translate-middle w-100 vh-100 top-50 start-50 d-flex align-items-center justify-content-center">
         <div className="spinner-border text-primary w-3 h-3" role="status">
@@ -28,7 +28,7 @@ const Menu = () => {
 
               {/* Dropdown */}
               <div className="nav-item dropdown">
-                <a href="#" className="nav-link dropdown-toggle" data-bs-toggle="dropdown">Lava.</a>
+                <a href="#" className="nav-link dropdown-toggle active" data-bs-toggle="dropdown">Lava.</a>
                 <div className="dropdown-menu bg-light m-0">
                   <Link to="/lava" className="dropdown-item">About Lava.</Link>
                   <Link to="/lava-gallery" className="dropdown-item">Gallery Lava.</Link>
