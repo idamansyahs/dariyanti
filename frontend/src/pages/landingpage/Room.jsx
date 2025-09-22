@@ -540,7 +540,7 @@ const Room = () => {
         }
       `}</style>
 
-      <BookingForm />
+      {/* <BookingForm /> */}
     </div>
   )
 }
