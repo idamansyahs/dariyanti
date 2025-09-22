@@ -348,8 +348,12 @@ const Room = () => {
                     </div>
 
                     {/* Counter and Price */}
-                    <div className="mt-auto">
+                    {/* <div className="mt-auto">
                       <RoomCounter roomId={room.id} count={cart[room.id] || 0} />
+                    </div> */}
+                    <div className="text-end">
+                      <small className="text-muted">FROM</small>
+                      <h5 className="fw-bold">{room.priceDisplay}</h5>
                     </div>
 
                     {/* Read More Button */}
@@ -369,7 +373,7 @@ const Room = () => {
           </div>
 
           {/* Select Button */}
-          <div className="text-center mt-4">
+          {/* <div className="text-center mt-4">
             <button
               className="btn btn-warning btn-lg px-5 py-3 fw-bold"
               onClick={handleSelect}
@@ -383,7 +387,7 @@ const Room = () => {
             >
               Select → {totalRooms > 0 && <span className="badge bg-dark ms-2">{totalRooms}</span>}
             </button>
-          </div>
+          </div> */}
         </div>
       </div>
       {/* Room Section End */}
@@ -432,14 +436,14 @@ const Room = () => {
               </div>
               <div className="modal-footer">
                 <button type="button" className="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button
+                {/* <button
                   type="button"
                   className="btn btn-primary"
                   onClick={() => addToCart(room.id)}
                   data-bs-dismiss="modal"
                 >
                   Add to Cart
-                </button>
+                </button> */}
               </div>
             </div>
           </div>

@@ -76,7 +76,7 @@ const Gallery = () => {
       // Susun ulang semua item sesuai filter awal ("*")
       iso.current.arrange({ filter: filterKey });
 
-      iso.current.layout()
+      setTimeout(() => iso.current.layout(), 600);
     }
 
     // Cleanup saat komponen dibongkar/unmount
@@ -299,31 +299,31 @@ const Gallery = () => {
             {instaContents.map((item) => (
               <div key={item.id} className="col-lg-4 col-md-6 portfolio-item thirt">
                 <div className="portfolio-onner rounded">
-                  <blockquote
-                    className="instagram-media"
-                    data-instgrm-permalink={item.link}
-                    data-instgrm-version="14"
-                    style={blockquoteStyle}
-                  />
-                </div>
+                    <blockquote
+                      className="instagram-media"
+                      data-instgrm-permalink={item.link}
+                      data-instgrm-version="14"
+                      style={blockquoteStyle}
+                    />
+                  </div>
               </div>
             ))}
 
             {tiktokContents.map((item) => (
               <div key={item.id} className="col-lg-4 col-md-6 portfolio-item thirt">
                 <div className="portfolio-onner rounded">
-                  <blockquote
-                    className="tiktok-embed"
-                    cite={item.link}
-                    data-video-id={getTiktokId(item.link)}
-                    style={blockquoteStyle}
-                  >
-                    <section>
-                      <a href={item.link} target="_blank" rel="noopener noreferrer">
-                        Lihat postingan di TikTok
-                      </a>
-                    </section>
-                  </blockquote>
+                    <blockquote
+                      className="tiktok-embed"
+                      cite={item.link}
+                      data-video-id={getTiktokId(item.link)}
+                      style={blockquoteStyle}
+                    >
+                      <section>
+                        <a href={item.link} target="_blank" rel="noopener noreferrer">
+                          Lihat postingan di TikTok
+                        </a>
+                      </section>
+                    </blockquote>
                 </div>
               </div>
             ))}

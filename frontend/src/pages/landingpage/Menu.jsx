@@ -51,7 +51,7 @@ const Menu = () => {
             <h1 className="display-3 text-white mb-3 animated slideInDown">About Us</h1>
             <nav aria-label="breadcrumb">
               <ol className="breadcrumb justify-content-center text-uppercase">
-                <li className="breadcrumb-item"><Link to="/" className="nav-item nav-link active">Home</Link></li>
+                <li className="breadcrumb-item"><Link to="/" >Home</Link></li>
                 <li className="breadcrumb-item text-white active" aria-current="page">Lava.</li>
                 <li className="breadcrumb-item text-white active" aria-current="page">About</li>
               </ol>
