@@ -19,7 +19,7 @@ import Room_LP from "./pages/landingpage/Room.jsx";
 import BookingForm from "./pages/landingpage/BookingForm.jsx";
 import DaftarKonten from "./pages/konten/DaftarKonten.jsx";
 
-import './app.css'
+// import './app.css'
 import './assets/css/style.css'
 
 export default function App() {

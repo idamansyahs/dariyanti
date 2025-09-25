@@ -94,6 +94,7 @@ const Gallery = () => {
     margin: "1px", maxWidth: "540px", minWidth: "326px", padding: 0,
     width: "calc(100% - 2px)",
   };
+  
   const getTiktokId = (url) => {
     const match = url.match(/(\d+)(?:\/)?$/);
     return match ? match[1] : "";
