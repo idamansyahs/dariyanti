@@ -13,29 +13,21 @@ const Gallery = () => {
   const [filterKey, setFilterKey] = useState("*");
   const [dynamicContents, setDynamicContents] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [instaContents, setInstaContents] = useState([]);
-  const [tiktokContents, setTiktokContents] = useState([]);
 
   // ==================================================================
   // 2. DATA FETCHING (Hanya berjalan sekali saat komponen dimuat)
   // ==================================================================
   useEffect(() => {
-    axios.get("http://localhost:5000/api/konten-user").then((res) => {
-      const data = res.data;
-
-      const ig = data
-        .filter((item) => item.platform.toLowerCase() === "instagram")
-        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-        .slice(0, 3);
-
-      const tt = data
-        .filter((item) => item.platform.toLowerCase() === "tiktok")
-        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-        .slice(0, 3);
-
-      setInstaContents(ig);
-      setTiktokContents(tt);
-    })
+    axios.get("http://localhost:5000/api/konten-user")
+      .then((res) => {
+        const allContents = res.data.map(item => ({ ...item, platform: item.platform.toLowerCase() }));
+        setDynamicContents(allContents);
+        setIsLoading(false);
+      })
+      .catch(err => {
+        console.error("Gagal mengambil data:", err);
+        setIsLoading(false);
+      });
   }, []);
 
   // ==================================================================
@@ -75,8 +67,6 @@ const Gallery = () => {
       iso.current.reloadItems();
       // Susun ulang semua item sesuai filter awal ("*")
       iso.current.arrange({ filter: filterKey });
-
-      setTimeout(() => iso.current.layout(), 600);
     }
 
     // Cleanup saat komponen dibongkar/unmount
@@ -103,8 +93,8 @@ const Gallery = () => {
     boxShadow: "0 0 1px 0 rgba(0,0,0,0.5),0 1px 10px 0 rgba(0,0,0,0.15)",
     margin: "1px", maxWidth: "540px", minWidth: "326px", padding: 0,
     width: "calc(100% - 2px)",
-    minHeight: "400px"
   };
+  
   const getTiktokId = (url) => {
     const match = url.match(/(\d+)(?:\/)?$/);
     return match ? match[1] : "";
@@ -131,7 +121,7 @@ const Gallery = () => {
           </button>
           <div className="collapse navbar-collapse" id="navbarCollapse">
             <div className="navbar-nav ms-auto py-0 pe-4">
-              <Link to="/" className="nav-item nav-link">Home</Link>
+              <Link to="/" className="nav-item nav-link active">Home</Link>
               <Link to="/about" className="nav-item nav-link">About</Link>
 
               {/* Dropdown */}
@@ -146,7 +136,7 @@ const Gallery = () => {
 
               <Link to="/attraction" className="nav-item nav-link">Attraction</Link>
               <Link to="/rooms" className="nav-item nav-link">Rooms</Link>
-              <Link to="/gallery" className="nav-item nav-link active">Gallery</Link>
+              <Link to="/gallery" className="nav-item nav-link">Gallery</Link>
               <Link to="/contact" className="nav-item nav-link">Contact</Link>
 
               <Link to="/login" className="nav-item nav-link">Login</Link>
@@ -296,9 +286,10 @@ const Gallery = () => {
             </div>
 
             {/* content start */}
-            {instaContents.map((item) => (
-              <div key={item.id} className="col-lg-4 col-md-6 portfolio-item thirt">
-                <div className="portfolio-onner rounded">
+            {!isLoading && dynamicContents.map((item) => {
+              if (item.platform === "instagram") {
+                return (
+                  <div key={item.id} className="col-lg-4 col-md-6 portfolio-item thirt wow fadeInUp" data-wow-delay="0.1s">
                     <blockquote
                       className="instagram-media"
                       data-instgrm-permalink={item.link}
@@ -306,28 +297,25 @@ const Gallery = () => {
                       style={blockquoteStyle}
                     />
                   </div>
-              </div>
-            ))}
-
-            {tiktokContents.map((item) => (
-              <div key={item.id} className="col-lg-4 col-md-6 portfolio-item thirt">
-                <div className="portfolio-onner rounded">
+                );
+              }
+              if (item.platform === "tiktok") {
+                return (
+                  <div key={item.id} className="col-lg-4 col-md-6 portfolio-item thirt wow fadeInUp" data-wow-delay="0.1s">
                     <blockquote
                       className="tiktok-embed"
                       cite={item.link}
                       data-video-id={getTiktokId(item.link)}
-                      style={blockquoteStyle}
+                      style={{ ...blockquoteStyle, minHeight: '500px' }} // TikTok perlu tinggi minimum
                     >
-                      <section>
-                        <a href={item.link} target="_blank" rel="noopener noreferrer">
-                          Lihat postingan di TikTok
-                        </a>
-                      </section>
+                      <section></section>
                     </blockquote>
-                </div>
-              </div>
-            ))}
-          </div >
+                  </div>
+                );
+              }
+              return null;
+            })}
+          </div>
 
           {/* content end */}
         </div>
