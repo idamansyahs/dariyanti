@@ -1,17 +1,23 @@
-import React from 'react'
-import { Link } from 'react-router-dom'
+import React from 'react';
+import { Link } from 'react-router-dom';
+
+// 1. Impor semua gambar yang dibutuhkan untuk halaman ini
+import aboutImg1 from '/src/assets/img/1.jpg';
+import aboutImg2 from '/src/assets/img/2.jpg';
+import aboutImg3 from '/src/assets/img/3.jpg';
+import aboutImg4 from '/src/assets/img/4.jpg';
+import roomImg1 from '/src/assets/img/kamar.jpg';
+import roomImg2 from '/src/assets/img/kamar2.jpeg';
+import roomImg3 from '/src/assets/img/kamar1.jpeg';
+import destination1 from '/src/assets/img/destination-1.jpg';
+import destination2 from '/src/assets/img/destination-2.jpg';
+import destination3 from '/src/assets/img/destination-3.jpeg';
+import destination4 from '/src/assets/img/destination-4.jpg';
+
 
 const Index = () => {
   return (
     <div className="container-xxl bg-white p-0">
-      {/* spinner */}
-      {/* <div id="spinner" className="show bg-white position-fixed translate-middle w-100 vh-100 top-50 start-50 d-flex align-items-center justify-content-center">
-        <div className="spinner-border text-primary w-3 h-3" role="status">
-          <span className="sr-only">Loading...</span>
-        </div>
-      </div> */}
-      {/* spinner end */}
-
       {/* navbar and hero  */}
       <div className="container-xxl position-relative p-0">
         <nav className="navbar navbar-expand-lg navbar-dark bg-dark px-4 px-lg-5 py-3 py-lg-0">
@@ -26,7 +32,6 @@ const Index = () => {
               <Link to="/" className="nav-item nav-link active">Home</Link>
               <Link to="/about" className="nav-item nav-link">About</Link>
 
-              {/* Dropdown */}
               <div className="nav-item dropdown">
                 <a href="#" className="nav-link dropdown-toggle" data-bs-toggle="dropdown">Lava.</a>
                 <div className="dropdown-menu bg-light m-0">
@@ -40,7 +45,6 @@ const Index = () => {
               <Link to="/rooms" className="nav-item nav-link">Rooms</Link>
               <Link to="/gallery" className="nav-item nav-link">Gallery</Link>
               <Link to="/contact" className="nav-item nav-link">Contact</Link>
-
               <Link to="/login" className="nav-item nav-link">Login</Link>
             </div>
           </div>
@@ -58,6 +62,8 @@ const Index = () => {
                 </p>
               </div>
               <div className="col-lg-6 text-center text-lg-end overflow-hidden">
+                {/* 2. Menambahkan hero image */}
+                {/* <img className="img-fluid" src={roomImg1} alt="Hero room" /> */}
               </div>
             </div>
           </div>
@@ -117,16 +123,16 @@ const Index = () => {
             <div className="col-lg-6">
               <div className="row g-3">
                 <div className="col-6 text-start">
-                  <img className="img-fluid rounded w-100 wow zoomIn" data-wow-delay="0.1s" src="/src/assets/img/2.jpg" />
+                  <img className="img-fluid rounded w-100 wow zoomIn" data-wow-delay="0.1s" src={aboutImg2} alt="About 2" />
                 </div>
                 <div className="col-6 text-start">
-                  <img className="img-fluid rounded w-75 wow zoomIn" data-wow-delay="0.3s" src="/src/assets/img/3.jpg" style={{ marginTop: '25%' }} />
+                  <img className="img-fluid rounded w-75 wow zoomIn" data-wow-delay="0.3s" src={aboutImg3} style={{ marginTop: '25%' }} alt="About 3" />
                 </div>
                 <div className="col-6 text-end">
-                  <img className="img-fluid rounded w-75 wow zoomIn" data-wow-delay="0.5s" src="/src/assets/img/1.jpg" />
+                  <img className="img-fluid rounded w-75 wow zoomIn" data-wow-delay="0.5s" src={aboutImg1} alt="About 1" />
                 </div>
                 <div className="col-6 text-end">
-                  <img className="img-fluid rounded w-100 wow zoomIn" data-wow-delay="0.7s" src="/src/assets/img/4.jpg" />
+                  <img className="img-fluid rounded w-100 wow zoomIn" data-wow-delay="0.7s" src={aboutImg4} alt="About 4" />
                 </div>
               </div>
             </div>
@@ -179,7 +185,7 @@ const Index = () => {
             <div className="col-lg-4 col-md-6 wow fadeInUp" data-wow-delay="0.1s">
               <div className="team-item text-center rounded overflow-hidden">
                 <div className="rounded-circle overflow-hidden m-4">
-                  <img className="img-fluid" src="/src/assets/img/kamar.jpg" alt="" />
+                  <img className="img-fluid" src={roomImg1} alt="Fhandika Boutique Room" />
                 </div>
                 <h3 className="mb-0">Fhandika Boutique</h3>
                 <p>King-size and Twin bed</p>
@@ -191,7 +197,7 @@ const Index = () => {
             <div className="col-lg-4 col-md-6 wow fadeInUp" data-wow-delay="0.3s">
               <div className="team-item text-center rounded overflow-hidden">
                 <div className="rounded-circle overflow-hidden m-4">
-                  <img className="img-fluid" src="/src/assets/img/kamar2.jpeg" alt="" />
+                  <img className="img-fluid" src={roomImg2} alt="Fhandika SS Room" />
                 </div>
                 <h3 className="mb-0">Fhandika SS </h3>
                 <p>King-size and Twin bed</p>
@@ -203,7 +209,7 @@ const Index = () => {
             <div className="col-lg-4 col-md-6 wow fadeInUp" data-wow-delay="0.5s">
               <div className="team-item text-center rounded overflow-hidden">
                 <div className="rounded-circle overflow-hidden m-4">
-                  <img className="img-fluid" src="/src/assets/img/kamar1.jpeg" alt="" />
+                  <img className="img-fluid" src={roomImg3} alt="Fhandika DXQ Room" />
                 </div>
                 <h3 className="mb-0">Fhandika DXQ</h3>
                 <p>Single bed</p>
@@ -212,7 +218,6 @@ const Index = () => {
                 </div>
               </div>
             </div>
-
           </div>
         </div>
       </div>
@@ -229,30 +234,30 @@ const Index = () => {
             <div className="col-lg-7 col-md-6">
               <div className="row g-3">
                 <div className="col-lg-12 col-md-12 wow zoomIn" data-wow-delay="0.1s">
-                  <a className="position-relative d-block overflow-hidden" href="">
-                    <img className="img-fluid" src="/src/assets/img/destination-1.jpg" alt="" />
+                  <Link to="/attractions/ulee-lheue-beach" className="position-relative d-block overflow-hidden">
+                    <img className="img-fluid" src={destination1} alt="Ulee Lheue Beach" />
                     <div className="bg-white text-primary fw-bold position-absolute bottom-0 end-0 m-3 py-1 px-2">Ulee Lheue Beach</div>
-                  </a>
+                  </Link>
                 </div>
                 <div className="col-lg-6 col-md-12 wow zoomIn" data-wow-delay="0.3s">
-                  <a className="position-relative d-block overflow-hidden" href="">
-                    <img className="img-fluid" src="/src/assets/img/destination-2.jpg" alt="" />
-                    <div className="bg-white text-primary fw-bold position-absolute bottom-0 end-0 m-3 py-1 px-2">Mesjid Raya Baiturrahman</div>
-                  </a>
+                  <Link to="/attractions/masjid-raya-baiturrahman" className="position-relative d-block overflow-hidden">
+                    <img className="img-fluid" src={destination2} alt="Masjid Raya Baiturrahman" />
+                    <div className="bg-white text-primary fw-bold position-absolute bottom-0 end-0 m-3 py-1 px-2">Masjid Raya Baiturrahman</div>
+                  </Link>
                 </div>
                 <div className="col-lg-6 col-md-12 wow zoomIn" data-wow-delay="0.5s">
-                  <a className="position-relative d-block overflow-hidden" href="">
-                    <img className="img-fluid" src="/src/assets/img/destination-3.jpeg" alt="" />
+                  <Link to="/attractions/museum-aceh" className="position-relative d-block overflow-hidden">
+                    <img className="img-fluid" src={destination3} alt="Museum Aceh" />
                     <div className="bg-white text-primary fw-bold position-absolute bottom-0 end-0 m-3 py-1 px-2">Museum Aceh</div>
-                  </a>
+                  </Link>
                 </div>
               </div>
             </div>
             <div className="col-lg-5 col-md-6 wow zoomIn" data-wow-delay="0.7s" style={{ minHeight: '350px' }}>
-              <a className="position-relative d-block h-100 overflow-hidden" href="">
-                <img className="img-fluid position-absolute w-100 h-100" src="/src/assets/img/destination-4.jpg" alt="" style={{ objectFit: 'cover' }} />
+              <Link to="/attractions/museum-tsunami" className="position-relative d-block h-100 overflow-hidden">
+                <img className="img-fluid position-absolute w-100 h-100" src={destination4} alt="Museum Tsunami" style={{ objectFit: 'cover' }} />
                 <div className="bg-white text-primary fw-bold position-absolute bottom-0 end-0 m-3 py-1 px-2">Museum Tsunami</div>
-              </a>
+              </Link>
             </div>
           </div>
         </div>
@@ -271,15 +276,15 @@ const Index = () => {
               <div className="row gy-4">
                 <div className="col-md-4">
                   <h5 className="section-title ff-secondary fw-normal text-start text-primary">Whatsapp</h5>
-                  <p><a href="https://wa.me/+628116810037"><i className="fa-brands fa-square-whatsapp"></i>  +62 811-6810-037</a></p>
+                  <p><a href="https://wa.me/+628116810037" target="_blank" rel="noopener noreferrer"><i className="fa-brands fa-square-whatsapp text-primary me-2"></i>+62 811-6810-037</a></p>
                 </div>
                 <div className="col-md-4">
                   <h5 className="section-title ff-secondary fw-normal text-start text-primary">Instagram</h5>
-                  <p>                <a href="https://www.instagram.com/fhandikaboutique/"><i className="fa-brands fa-square-instagram"></i>  @fhandikaboutique</a></p>
+                  <p><a href="https://www.instagram.com/fhandikaboutique/" target="_blank" rel="noopener noreferrer"><i className="fa-brands fa-square-instagram text-primary me-2"></i>@fhandikaboutique</a></p>
                 </div>
                 <div className="col-md-4">
                   <h5 className="section-title ff-secondary fw-normal text-start text-primary">Email</h5>
-                  <p>                <a href="mailto:hotel@fhandikaboutiqueinc.com"><i className="fa-solid fa-envelope"></i>hotel@fhandikaboutiqueinc.com</a></p>
+                  <p><a href="mailto:hotel@fhandikaboutiqueinc.com"><i className="fa-solid fa-envelope text-primary me-2"></i>hotel@fhandikaboutiqueinc.com</a></p>
                 </div>
               </div>
             </div>
@@ -302,7 +307,6 @@ const Index = () => {
       {/* contact end */}
 
       {/* footer start */}
-
       <div id="footer">
         <div className="container">
           <div className="row">
@@ -336,7 +340,7 @@ const Index = () => {
             </div>
             <div className="col-12">
               <p>
-                Copyright &#169; 2023{" "}
+                Copyright © 2023{" "}
                 <a
                   href="https://fhandikaboutiqueinc.com"
                   target="_blank"
@@ -346,7 +350,6 @@ const Index = () => {
                 </a>{" "}
                 All Rights Reserved.
               </p>
-
               <p>
                 Designed By{" "}
                 <a

@@ -1,52 +1,49 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Link } from 'react-router-dom'
+import { Link } from 'react-router-dom';
 import Isotope from "isotope-layout";
-import axios from "axios";
+
+// 1. Impor semua gambar statis yang digunakan di galeri
+import gallery0 from '/src/assets/img/gallery/0.jpg';
+import gallery1 from '/src/assets/img/gallery/1.jpg';
+import gallery2 from '/src/assets/img/gallery/2.jpg';
+import gallery3 from '/src/assets/img/gallery/3.jpg';
+import gallery4 from '/src/assets/img/gallery/4.jpg';
+import gallery5 from '/src/assets/img/gallery/5.jpg';
+import gallery6 from '/src/assets/img/gallery/6.jpg';
+import gallery7 from '/src/assets/img/gallery/7.jpg';
+import gallery8 from '/src/assets/img/gallery/8.jpg';
+import api from "../../api";
 
 const LavaGallery = () => {
+  // ==================================================================
+  // 1. STATE & REF MANAGEMENT (Disederhanakan)
+  // ==================================================================
   const iso = useRef(null);
   const isotopeContainer = useRef(null);
   const [filterKey, setFilterKey] = useState("*");
-  const [contents, setContents] = useState([]);
-  const [instaContents, setInstaContents] = useState([]);
-  const [tiktokContents, setTiktokContents] = useState([]);
-    const [isLoading, setIsLoading] = useState(true);
+  const [dynamicContents, setDynamicContents] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
+  // ==================================================================
+  // 2. DATA FETCHING (Disederhanakan)
+  // ==================================================================
   useEffect(() => {
-    axios.get("http://localhost:5000/api/konten-user").then((res) => {
-      const data = res.data;
-
-      const ig = data
-        .filter((item) => item.platform.toLowerCase() === "instagram")
-        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-        .slice(0, 3);
-
-      const tt = data
-        .filter((item) => item.platform.toLowerCase() === "tiktok")
-        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-        .slice(0, 3);
-
-      setInstaContents(ig);
-      setTiktokContents(tt);
-    })
+    api.get("http://localhost:5000/api/konten-user")
+      .then((res) => {
+        const allContents = res.data.map(item => ({ ...item, platform: item.platform.toLowerCase() }));
+        setDynamicContents(allContents);
+        setIsLoading(false);
+      })
+      .catch(err => {
+        console.error("Gagal mengambil data:", err);
+        setIsLoading(false);
+      });
   }, []);
 
+  // ==================================================================
+  // 3. ISOTOPE & EMBED LOGIC (Disederhanakan)
+  // ==================================================================
   useEffect(() => {
-    // pastikan script embed Instagram sudah ada
-    if (!document.getElementById("instgrm-script")) {
-      const s = document.createElement("script");
-      s.id = "instgrm-script";
-      s.src = "https://www.instagram.com/embed.js";
-      s.async = true;
-      document.body.appendChild(s);
-    } else if (window.instgrm) {
-      window.instgrm.Embeds.process();
-    }
-  }, []);
-
-
-  useEffect(() => {
-    // Muat script embed pihak ketiga (Instagram & TikTok)
     if (!document.getElementById("instgrm-script")) {
       const s = document.createElement("script");
       s.id = "instgrm-script"; s.src = "https://www.instagram.com/embed.js"; s.async = true;
@@ -58,7 +55,6 @@ const LavaGallery = () => {
       document.body.appendChild(s);
     }
 
-    // Inisialisasi Isotope jika belum ada
     if (!iso.current && isotopeContainer.current) {
       iso.current = new Isotope(isotopeContainer.current, {
         itemSelector: ".portfolio-item",
@@ -66,35 +62,25 @@ const LavaGallery = () => {
       });
     }
 
-    // Jika data SUDAH SELESAI dimuat, lakukan proses penting ini SEKALI SAJA
     if (!isLoading && iso.current) {
-      // Proses embed agar konten IG/TikTok muncul
       if (window.instgrm) {
         window.instgrm.Embeds.process();
       }
-
-      // Beri tahu Isotope untuk mengenali item baru yang dinamis
       iso.current.reloadItems();
-      // Susun ulang semua item sesuai filter awal ("*")
       iso.current.arrange({ filter: filterKey });
     }
 
-    // Cleanup saat komponen dibongkar/unmount
     return () => {
       if (iso.current) {
         iso.current.destroy();
         iso.current = null;
       }
     };
-  }, [isLoading]); // <-- KUNCI: Efek ini HANYA bergantung pada `isLoading`
+  }, [isLoading]);
 
-  useEffect(() => {
-    if (iso.current) {
-      iso.current.arrange({ filter: filterKey });
-    }
-  }, [filterKey]); // <-- KUNCI: Efek ini HANYA untuk memfilter
-
-  // setiap kali filterKey berubah, atur ulang item
+  // ==================================================================
+  // 4. FILTERING LOGIC
+  // ==================================================================
   useEffect(() => {
     if (iso.current) {
       iso.current.arrange({ filter: filterKey });
@@ -106,26 +92,16 @@ const LavaGallery = () => {
     background: "#FFF", border: 0, borderRadius: 3,
     boxShadow: "0 0 1px 0 rgba(0,0,0,0.5),0 1px 10px 0 rgba(0,0,0,0.15)",
     margin: "1px", maxWidth: "540px", minWidth: "326px", padding: 0,
-    width: "99.375%",
+    width: "calc(100% - 2px)",
   };
 
-
   const getTiktokId = (url) => {
-    // cari angka di akhir URL (video id)
     const match = url.match(/(\d+)(?:\/)?$/);
     return match ? match[1] : "";
   };
 
   return (
     <div className="container-xxl bg-white p-0">
-      {/* spinner */}
-      {/* <div id="spinner" className="show bg-white position-fixed translate-middle w-100 vh-100 top-50 start-50 d-flex align-items-center justify-content-center">
-        <div className="spinner-border text-primary w-3 h-3" role="status">
-          <span className="sr-only">Loading...</span>
-        </div>
-      </div> */}
-      {/* spinner end */}
-
       {/* navbar and hero  */}
       <div className="container-xxl position-relative p-0">
         <nav className="navbar navbar-expand-lg navbar-dark bg-dark px-4 px-lg-5 py-3 py-lg-0">
@@ -140,12 +116,12 @@ const LavaGallery = () => {
               <Link to="/" className="nav-item nav-link">Home</Link>
               <Link to="/about" className="nav-item nav-link">About</Link>
 
-              {/* Dropdown */}
               <div className="nav-item dropdown">
                 <a href="#" className="nav-link dropdown-toggle active" data-bs-toggle="dropdown">Lava.</a>
                 <div className="dropdown-menu bg-light m-0">
                   <Link to="/lava" className="dropdown-item">About Lava.</Link>
-                  <Link to="/lava-gallery" className="dropdown-item">Gallery Lava.</Link>
+                  {/* 2. Atur 'active' class pada link dropdown yang benar */}
+                  <Link to="/lava-gallery" className="dropdown-item active">Gallery Lava.</Link>
                   <Link to="/menu" className="dropdown-item">Menu Lava.</Link>
                 </div>
               </div>
@@ -154,7 +130,6 @@ const LavaGallery = () => {
               <Link to="/rooms" className="nav-item nav-link">Rooms</Link>
               <Link to="/gallery" className="nav-item nav-link">Gallery</Link>
               <Link to="/contact" className="nav-item nav-link">Contact</Link>
-
               <Link to="/login" className="nav-item nav-link">Login</Link>
             </div>
           </div>
@@ -162,11 +137,12 @@ const LavaGallery = () => {
 
         <div className="container-xxl py-5 bg-dark hero-header mb-5">
           <div className="container text-center my-5 pt-5 pb-4">
-            <h1 className="display-3 text-white mb-3 animated slideInDown active">Gallery Lava.</h1>
+            <h1 className="display-3 text-white mb-3 animated slideInDown">Gallery Lava.</h1>
             <nav aria-label="breadcrumb">
+              {/* 3. Perbaiki struktur breadcrumb */}
               <ol className="breadcrumb justify-content-center text-uppercase">
                 <li className="breadcrumb-item"><Link to="/">Home</Link></li>
-                <li className="breadcrumb-item text-white active" aria-current="page">Lava.</li>
+                <li className="breadcrumb-item"><Link to="/lava">Lava.</Link></li>
                 <li className="breadcrumb-item text-white active" aria-current="page">Gallery</li>
               </ol>
             </nav>
@@ -176,7 +152,6 @@ const LavaGallery = () => {
       {/* navbar and hero end */}
 
       {/* Projects Start */}
-      {/*  Projects Start */}
       <div className="container-xxl py-5">
         <div className="container">
           <div className="text-center mx-auto wow fadeInUp max-w-96" data-wow-delay="0.1s" >
@@ -194,157 +169,154 @@ const LavaGallery = () => {
                 <li className={`mx-2 ${filterKey === ".second" ? "active" : ""}`} onClick={() => setFilterKey(".second")}>
                   Rooms
                 </li>
-                <li className={`mx-2 ${filterKey === ".thirt" ? "active" : ""}`} onClick={() => setFilterKey(".thirt")}>
+                <li className={`mx-2 ${filterKey === ".third" ? "active" : ""}`} onClick={() => setFilterKey(".third")}>
                   Contents
                 </li>
               </ul>
             </div>
           </div>
 
-          {/*  Gallery start*/}
+          {/* Gallery start*/}
           <div ref={isotopeContainer} className="row g-4 portfolio-container">
+            {/* Gunakan gambar yang diimpor */}
             <div className="col-lg-4 col-md-6 portfolio-item first wow fadeInUp" data-wow-delay="0.1s">
               <div className="portfolio-inner rounded">
-                <img className="img-fluid" src="/src/assets/img/gallery/1.jpg" alt="" />
+                <img className="img-fluid" src={gallery1} alt="Lava Coffee and Eatery" />
                 <div className="portfolio-text">
                   <h4 className="text-white mb-4">Lava. Coffee and Eatery</h4>
                   <div className="d-flex">
-                    <a className="btn btn-lg-square rounded-circle mx-2" href="/src/assets/img/gallery/1.jpg" data-lightbox="portfolio"><i className="fa fa-link"></i></a>
+                    <a className="btn btn-lg-square rounded-circle mx-2" href={gallery1} data-lightbox="portfolio"><i className="fa fa-link"></i></a>
                   </div>
                 </div>
               </div>
             </div>
             <div className="col-lg-4 col-md-6 portfolio-item second wow fadeInUp" data-wow-delay="0.3s">
               <div className="portfolio-inner rounded">
-                <img className="img-fluid" src="/src/assets/img/gallery/2.jpg" alt="" />
+                <img className="img-fluid" src={gallery2} alt="Room" />
                 <div className="portfolio-text">
                   <h4 className="text-white mb-4">Room</h4>
                   <div className="d-flex">
-                    <a className="btn btn-lg-square rounded-circle mx-2" href="/src/assets/img/gallery/2.jpg" data-lightbox="portfolio"><i className="fa fa-link"></i></a>
+                    <a className="btn btn-lg-square rounded-circle mx-2" href={gallery2} data-lightbox="portfolio"><i className="fa fa-link"></i></a>
                   </div>
                 </div>
               </div>
             </div>
+            {/* ... Ulangi untuk semua gambar statis lainnya ... */}
             <div className="col-lg-4 col-md-6 portfolio-item second wow fadeInUp" data-wow-delay="0.5s">
-              <div className="portfolio-inner rounded">
-                <img className="img-fluid" src="/src/assets/img/gallery/3.jpg" alt="" />
-                <div className="portfolio-text">
-                  <h4 className="text-white mb-4">Room</h4>
-                  <div className="d-flex">
-                    <a className="btn btn-lg-square rounded-circle mx-2" href="/src/assets/img/gallery/3.jpg" data-lightbox="portfolio"><i className="fa fa-link"></i></a>
-                  </div>
+                <div className="portfolio-inner rounded">
+                    <img className="img-fluid" src={gallery3} alt="Room"/>
+                    <div className="portfolio-text">
+                        <h4 className="text-white mb-4">Room</h4>
+                        <div className="d-flex">
+                            <a className="btn btn-lg-square rounded-circle mx-2" href={gallery3} data-lightbox="portfolio"><i className="fa fa-link"></i></a>
+                        </div>
+                    </div>
                 </div>
-              </div>
             </div>
             <div className="col-lg-4 col-md-6 portfolio-item second wow fadeInUp" data-wow-delay="0.1s">
-              <div className="portfolio-inner rounded">
-                <img className="img-fluid" src="/src/assets/img/gallery/4.jpg" alt="" />
-                <div className="portfolio-text">
-                  <h4 className="text-white mb-4">Toilet</h4>
-                  <div className="d-flex">
-                    <a className="btn btn-lg-square rounded-circle mx-2" href="/src/assets/img/gallery/4.jpg" data-lightbox="portfolio"><i className="fa fa-link"></i></a>
-                  </div>
+                <div className="portfolio-inner rounded">
+                    <img className="img-fluid" src={gallery4} alt="Toilet"/>
+                    <div className="portfolio-text">
+                        <h4 className="text-white mb-4">Toilet</h4>
+                        <div className="d-flex">
+                            <a className="btn btn-lg-square rounded-circle mx-2" href={gallery4} data-lightbox="portfolio"><i className="fa fa-link"></i></a>
+                        </div>
+                    </div>
                 </div>
-              </div>
             </div>
             <div className="col-lg-4 col-md-6 portfolio-item first wow fadeInUp" data-wow-delay="0.3s">
-              <div className="portfolio-inner rounded">
-                <img className="img-fluid" src="/src/assets/img/gallery/5.jpg" alt="" />
-                <div className="portfolio-text">
-                  <h4 className="text-white mb-4">SS. Coffee Shop</h4>
-                  <div className="d-flex">
-                    <a className="btn btn-lg-square rounded-circle mx-2" href="/src/assets/img/gallery/5.jpg" data-lightbox="portfolio"><i className="fa fa-link"></i></a>
-                  </div>
+                <div className="portfolio-inner rounded">
+                    <img className="img-fluid" src={gallery5} alt="SS. Coffee Shop"/>
+                    <div className="portfolio-text">
+                        <h4 className="text-white mb-4">SS. Coffee Shop</h4>
+                        <div className="d-flex">
+                            <a className="btn btn-lg-square rounded-circle mx-2" href={gallery5} data-lightbox="portfolio"><i className="fa fa-link"></i></a>
+                        </div>
+                    </div>
                 </div>
-              </div>
             </div>
             <div className="col-lg-4 col-md-6 portfolio-item first wow fadeInUp" data-wow-delay="0.5s">
-              <div className="portfolio-inner rounded">
-                <img className="img-fluid" src="/src/assets/img/gallery/6.jpg" alt="" />
-                <div className="portfolio-text">
-                  <h4 className="text-white mb-4">Meeting Room</h4>
-                  <div className="d-flex">
-                    <a className="btn btn-lg-square rounded-circle mx-2" href="/src/assets/img/gallery/6.jpg" data-lightbox="portfolio"><i className="fa fa-link"></i></a>
-                  </div>
+                <div className="portfolio-inner rounded">
+                    <img className="img-fluid" src={gallery6} alt="Meeting Room"/>
+                    <div className="portfolio-text">
+                        <h4 className="text-white mb-4">Meeting Room</h4>
+                        <div className="d-flex">
+                            <a className="btn btn-lg-square rounded-circle mx-2" href={gallery6} data-lightbox="portfolio"><i className="fa fa-link"></i></a>
+                        </div>
+                    </div>
                 </div>
-              </div>
             </div>
             <div className="col-lg-4 col-md-6 portfolio-item first wow fadeInUp" data-wow-delay="0.5s">
-              <div className="portfolio-inner rounded">
-                <img className="img-fluid" src="/src/assets/img/gallery/0.jpg" alt="" />
-                <div className="portfolio-text">
-                  <h4 className="text-white mb-4">Lobby</h4>
-                  <div className="d-flex">
-                    <a className="btn btn-lg-square rounded-circle mx-2" href="/src/assets/img/gallery/0.jpg" data-lightbox="portfolio"><i className="fa fa-link"></i></a>
-                  </div>
+                <div className="portfolio-inner rounded">
+                    <img className="img-fluid" src={gallery0} alt="Lobby"/>
+                    <div className="portfolio-text">
+                        <h4 className="text-white mb-4">Lobby</h4>
+                        <div className="d-flex">
+                            <a className="btn btn-lg-square rounded-circle mx-2" href={gallery0} data-lightbox="portfolio"><i className="fa fa-link"></i></a>
+                        </div>
+                    </div>
                 </div>
-              </div>
             </div>
             <div className="col-lg-4 col-md-6 portfolio-item first wow fadeInUp" data-wow-delay="0.5s">
-              <div className="portfolio-inner rounded">
-                <img className="img-fluid" src="/src/assets/img/gallery/7.jpg" alt="" />
-                <div className="portfolio-text">
-                  <h4 className="text-white mb-4">Hallway</h4>
-                  <div className="d-flex">
-                    <a className="btn btn-lg-square rounded-circle mx-2" href="/src/assets/img/gallery/7.jpg" data-lightbox="portfolio"><i className="fa fa-link"></i></a>
-                  </div>
+                <div className="portfolio-inner rounded">
+                    <img className="img-fluid" src={gallery7} alt="Hallway"/>
+                    <div className="portfolio-text">
+                        <h4 className="text-white mb-4">Hallway</h4>
+                        <div className="d-flex">
+                            <a className="btn btn-lg-square rounded-circle mx-2" href={gallery7} data-lightbox="portfolio"><i className="fa fa-link"></i></a>
+                        </div>
+                    </div>
                 </div>
-              </div>
             </div>
             <div className="col-lg-4 col-md-6 portfolio-item first wow fadeInUp" data-wow-delay="0.5s">
-              <div className="portfolio-inner rounded">
-                <img className="img-fluid" src="/src/assets/img/gallery/8.jpg" alt="" />
-                <div className="portfolio-text">
-                  <h4 className="text-white mb-4">SS. Coffee Shop</h4>
-                  <div className="d-flex">
-                    <a className="btn btn-lg-square rounded-circle mx-2" href="/src/assets/img/gallery/8.jpg" data-lightbox="portfolio"><i className="fa fa-link"></i></a>
-                  </div>
+                <div className="portfolio-inner rounded">
+                    <img className="img-fluid" src={gallery8} alt="SS. Coffee Shop"/>
+                    <div className="portfolio-text">
+                        <h4 className="text-white mb-4">SS. Coffee Shop</h4>
+                        <div className="d-flex">
+                            <a className="btn btn-lg-square rounded-circle mx-2" href={gallery8} data-lightbox="portfolio"><i className="fa fa-link"></i></a>
+                        </div>
+                    </div>
                 </div>
-              </div>
             </div>
 
             {/* content start */}
-            {instaContents.map((item) => (
-              <div key={item.id} className="col-lg-4 col-md-6">
-                <div className="portfolio-onner rounded">
-                  <blockquote
-                    className="instagram-media"
-                    data-instgrm-permalink={item.link}
-                    data-instgrm-version="14"
-                    style={blockquoteStyle}
-                  />
-                </div>
-              </div>
-            ))}
-
-            {tiktokContents.map((item) => (
-              <div key={item.id} className="col-lg-4 col-md-6">
-                <div className="portfolio-onner rounded">
-                  <blockquote
-                    className="tiktok-embed"
-                    cite={item.link}
-                    data-video-id={getTiktokId(item.link)}
-                    style={blockquoteStyle}
-                  >
-                    <section>
-                      <a href={item.link} target="_blank" rel="noopener noreferrer">
-                        Lihat postingan di TikTok
-                      </a>
-                    </section>
-                  </blockquote>
-                </div>
-              </div>
-            ))}
-          </div >
-
+            {!isLoading && dynamicContents.map((item) => {
+              if (item.platform === "instagram") {
+                return (
+                  <div key={item.id} className="col-lg-4 col-md-6 portfolio-item third wow fadeInUp" data-wow-delay="0.1s">
+                    <blockquote
+                      className="instagram-media"
+                      data-instgrm-permalink={item.link}
+                      data-instgrm-version="14"
+                      style={blockquoteStyle}
+                    />
+                  </div>
+                );
+              }
+              if (item.platform === "tiktok") {
+                return (
+                  <div key={item.id} className="col-lg-4 col-md-6 portfolio-item third wow fadeInUp" data-wow-delay="0.1s">
+                    <blockquote
+                      className="tiktok-embed"
+                      cite={item.link}
+                      data-video-id={getTiktokId(item.link)}
+                      style={{ ...blockquoteStyle, minHeight: '500px' }}
+                    >
+                      <section></section>
+                    </blockquote>
+                  </div>
+                );
+              }
+              return null;
+            })}
+          </div>
           {/* content end */}
-        </div >
-      </div >
+        </div>
+      </div>
       {/* gallery end */}
-      {/* Projects End */}
 
       {/* footer start */}
-
       <div id="footer">
         <div className="container">
           <div className="row">
@@ -388,7 +360,6 @@ const LavaGallery = () => {
                 </a>{" "}
                 All Rights Reserved.
               </p>
-
               <p>
                 Designed By{" "}
                 <a
@@ -404,8 +375,7 @@ const LavaGallery = () => {
         </div>
       </div>
       {/* footer end */}
-
-    </div >
+    </div>
   )
 }
 

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import axios from "axios";
+import api from "../../api";
 
 export default function BookingForm() {
   const [formData, setFormData] = useState({
@@ -24,7 +24,7 @@ export default function BookingForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post("http://localhost:5000/api/booking-user", formData);
+      await api.post("http://localhost:5000/api/booking-user", formData);
       setMessage("✅ Terima kasih, booking anda sedang diproses.");
       setFormData({
         guestName: "",

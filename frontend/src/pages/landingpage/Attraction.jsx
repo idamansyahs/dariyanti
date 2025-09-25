@@ -1,6 +1,12 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 
+// 1. Impor gambar di bagian atas
+import destination1 from '/src/assets/img/destination-1.jpg'
+import destination2 from '/src/assets/img/destination-2.jpg'
+import destination3 from '/src/assets/img/destination-3.jpeg'
+import destination4 from '/src/assets/img/destination-4.jpg'
+
 const Attraction = () => {
   return (
     <div className="container-xxl bg-white p-0">
@@ -71,99 +77,99 @@ const Attraction = () => {
             <div className="col-lg-7 col-md-6">
               <div className="row g-3">
                 <div className="col-lg-12 col-md-12 wow zoomIn" data-wow-delay="0.1s">
-                  <a className="position-relative d-block overflow-hidden" href="">
-                    <img className="img-fluid" src="/src/assets/img/destination-1.jpg" alt="" />
-                      <div className="bg-white text-primary fw-bold position-absolute bottom-0 end-0 m-3 py-1 px-2">Ulee Lheue Beach</div>
-                  </a>
+                  {/* 2. Ganti <a> dengan <Link> dan src dengan variabel impor */}
+                  <Link to="/attractions/ulee-lheue-beach" className="position-relative d-block overflow-hidden">
+                    <img className="img-fluid" src={destination1} alt="Ulee Lheue Beach" />
+                    <div className="bg-white text-primary fw-bold position-absolute bottom-0 end-0 m-3 py-1 px-2">Ulee Lheue Beach</div>
+                  </Link>
                 </div>
                 <div className="col-lg-6 col-md-12 wow zoomIn" data-wow-delay="0.3s">
-                  <a className="position-relative d-block overflow-hidden" href="">
-                    <img className="img-fluid" src="/src/assets/img/destination-2.jpg" alt="" />
-                      <div className="bg-white text-primary fw-bold position-absolute bottom-0 end-0 m-3 py-1 px-2">Mesjid Raya Baiturrahman</div>
-                  </a>
+                  <Link to="/attractions/masjid-raya-baiturrahman" className="position-relative d-block overflow-hidden">
+                    <img className="img-fluid" src={destination2} alt="Masjid Raya Baiturrahman" />
+                    <div className="bg-white text-primary fw-bold position-absolute bottom-0 end-0 m-3 py-1 px-2">Masjid Raya Baiturrahman</div>
+                  </Link>
                 </div>
                 <div className="col-lg-6 col-md-12 wow zoomIn" data-wow-delay="0.5s">
-                  <a className="position-relative d-block overflow-hidden" href="">
-                    <img className="img-fluid" src="/src/assets/img/destination-3.jpeg" alt="" />
-                      <div className="bg-white text-primary fw-bold position-absolute bottom-0 end-0 m-3 py-1 px-2">Museum Aceh</div>
-                  </a>
+                  <Link to="/attractions/museum-aceh" className="position-relative d-block overflow-hidden">
+                    <img className="img-fluid" src={destination3} alt="Museum Aceh" />
+                    <div className="bg-white text-primary fw-bold position-absolute bottom-0 end-0 m-3 py-1 px-2">Museum Aceh</div>
+                  </Link>
                 </div>
               </div>
             </div>
             <div className="col-lg-5 col-md-6 wow zoomIn min-h-96" data-wow-delay="0.7s" >
-              <a className="position-relative d-block h-100 overflow-hidden" href="">
-                <img className="img-fluid position-absolute w-100 h-100" src="/src/assets/img/destination-4.jpg" alt="" />
-                  <div className="bg-white text-primary fw-bold position-absolute bottom-0 end-0 m-3 py-1 px-2">Museum Tsunami</div>
-              </a>
+              <Link to="/attractions/museum-tsunami" className="position-relative d-block h-100 overflow-hidden">
+                <img className="img-fluid position-absolute w-100 h-100" src={destination4} alt="Museum Tsunami" style={{ objectFit: 'cover' }} />
+                <div className="bg-white text-primary fw-bold position-absolute bottom-0 end-0 m-3 py-1 px-2">Museum Tsunami</div>
+              </Link>
             </div>
           </div>
         </div>
       </div>
       {/* Destination end */}
 
-       {/* footer start */}
-
-            <div id="footer">
-                <div className="container">
-                    <div className="row">
-                        <div className="col-12">
-                            <div className="social">
-                                <a
-                                    href="https://www.instagram.com/fhandikaboutique/"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                >
-                                    <i className="fa-brands fa-square-instagram"></i>
-                                </a>
-                                <a href="mailto:hotel@fhandikaboutiqueinc.com">
-                                    <i className="fa-solid fa-envelope"></i>
-                                </a>
-                                <a
-                                    href="https://wa.me/+628116810037"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                >
-                                    <i className="fa-brands fa-square-whatsapp"></i>
-                                </a>
-                                <a
-                                    href="https://goo.gl/maps/QAJEEN5mgbUgurvj9"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                >
-                                    <i className="fa-solid fa-map-location-dot"></i>
-                                </a>
-                            </div>
-                        </div>
-                        <div className="col-12">
-                            <p>
-                                Copyright &#169; 2023{" "}
-                                <a
-                                    href="https://fhandikaboutiqueinc.com"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                >
-                                    Fhandika Boutique Inc.
-                                </a>{" "}
-                                All Rights Reserved.
-                            </p>
-
-                            <p>
-                                Designed By{" "}
-                                <a
-                                    href="https://htmlcodex.com"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                >
-                                    HTML Codex
-                                </a>
-                            </p>
-                        </div>
-                    </div>
-                </div>
+      {/* footer start */}
+      <div id="footer">
+        <div className="container">
+          <div className="row">
+            <div className="col-12">
+              <div className="social">
+                <a
+                  href="https://www.instagram.com/fhandikaboutique/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <i className="fa-brands fa-square-instagram"></i>
+                </a>
+                <a href="mailto:hotel@fhandikaboutiqueinc.com">
+                  <i className="fa-solid fa-envelope"></i>
+                </a>
+                <a
+                  href="https://wa.me/+628116810037"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <i className="fa-brands fa-square-whatsapp"></i>
+                </a>
+                <a
+                  href="https://goo.gl/maps/QAJEEN5mgbUgurvj9"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <i className="fa-solid fa-map-location-dot"></i>
+                </a>
+              </div>
             </div>
-            {/* footer end */}
+            <div className="col-12">
+              <p>
+                Copyright &#169; 2023{" "}
+                <a
+                  href="https://fhandikaboutiqueinc.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Fhandika Boutique Inc.
+                </a>{" "}
+                All Rights Reserved.
+              </p>
+
+              <p>
+                Designed By{" "}
+                <a
+                  href="https://htmlcodex.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  HTML Codex
+                </a>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+      {/* footer end */}
     </div>
   )
 }
 
-export default Attraction   
+export default Attraction

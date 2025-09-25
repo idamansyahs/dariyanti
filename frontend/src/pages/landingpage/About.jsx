@@ -1,6 +1,13 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 
+// Import gambar di bagian atas file
+import img1 from '/src/assets/img/1.jpg'
+import img2 from '/src/assets/img/2.jpg'
+import img3 from '/src/assets/img/3.jpg'
+import img4 from '/src/assets/img/4.jpg'
+
+
 const About = () => {
     return (
         <div className="container-xxl bg-white p-0">
@@ -59,16 +66,17 @@ const About = () => {
                         <div className="col-lg-6">
                             <div className="row g-3">
                                 <div className="col-6 text-start">
-                                    <img className="img-fluid rounded w-100 wow zoomIn" data-wow-delay="0.1s" src="/src/assets/img/2.jpg" />
+                                    {/* Gunakan variabel gambar yang sudah di-import */}
+                                    <img className="img-fluid rounded w-100 wow zoomIn" data-wow-delay="0.1s" src={img2} />
                                 </div>
                                 <div className="col-6 text-start">
-                                    <img className="img-fluid rounded w-75 wow zoomIn" data-wow-delay="0.3s" src="/src/assets/img/3.jpg" style={{ marginTop: '25%' }} />
+                                    <img className="img-fluid rounded w-75 wow zoomIn" data-wow-delay="0.3s" src={img3} style={{ marginTop: '25%' }} />
                                 </div>
                                 <div className="col-6 text-end">
-                                    <img className="img-fluid rounded w-75 wow zoomIn" data-wow-delay="0.5s" src="/src/assets/img/1.jpg" />
+                                    <img className="img-fluid rounded w-75 wow zoomIn" data-wow-delay="0.5s" src={img1} />
                                 </div>
                                 <div className="col-6 text-end">
-                                    <img className="img-fluid rounded w-100 wow zoomIn" data-wow-delay="0.7s" src="/src/assets/img/4.jpg" />
+                                    <img className="img-fluid rounded w-100 wow zoomIn" data-wow-delay="0.7s" src={img4} />
                                 </div>
                             </div>
                         </div>
@@ -94,7 +102,7 @@ const About = () => {
                                 depicting the beauty and uniqueness of different corners of the world. Every corner of the room is
                                 designed to create comfort and tranquility, while the stunning panoramic views from the windows will
                                 transport you to a world
-                                of serenity.                          </p>
+                                of serenity.                                 </p>
                             <p className="mb-4">
                                 In addition, the hotel features a coffee shop located in the lobby, serving as the perfect place to relax
                                 while enjoying a delightful cup of coffee. With a cozy atmosphere and intriguing decor, you can savor a
