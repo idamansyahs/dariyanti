@@ -4,7 +4,7 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 // helper validasi enum simple
-const ROOM_TYPES = ["BOUTIQUE", "SS", "DXQ"];
+const ROOM_TYPES = ["FBK", "FSKG", "FSST", "DXQ"];
 const ROOM_STATUS = ["VCN", "VCI", "OCCUPIED", "VDN", "OOO"];
 
 export const getRooms = async (req, res) => {

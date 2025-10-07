@@ -52,7 +52,7 @@ const BookingAdmin = () => {
   useEffect(() => {
     fetchRooms();
     fetchBookings();
-  }, []);
+  }, );
 
   const fetchRooms = async () => {
     try {
@@ -324,8 +324,9 @@ const BookingAdmin = () => {
                           onChange={(e) => setNewBooking({ ...newBooking, roomType: e.target.value, roomId: "" })}
                         >
                           <option value="">-- Select Type --</option>
-                          <option value="BOUTIQUE">BOUTIQUE</option>
-                          <option value="SS">SS</option>
+                          <option value="FBK">BOUTIQUE</option>
+                          <option value="FSKG">SS KING</option>
+                          <option value="FSST">SS TWIN</option>
                           <option value="DXQ">DXQ</option>
                         </select>
                       </div>
@@ -438,8 +439,9 @@ const BookingAdmin = () => {
                           }
                         >
                           <option value="">-- Select Type --</option>
-                          <option value="BOUTIQUE">BOUTIQUE</option>
-                          <option value="SS">SS</option>
+                          <option value="FBK">BOUTIQUE</option>
+                          <option value="FSKG">SS KING</option>
+                          <option value="FSST">SS TWIN</option>
                           <option value="DXQ">DXQ</option>
                         </select>
                       </div>

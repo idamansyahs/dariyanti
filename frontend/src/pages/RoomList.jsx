@@ -16,7 +16,7 @@ const RoomList = () => {
 
   useEffect(() => {
     fetchRooms();
-  }, []);
+  }, );
 
   const fetchRooms = async () => {
     try {
@@ -181,9 +181,10 @@ const RoomList = () => {
                     }
                   >
                     <option value="">-- Select Type --</option>
-                    <option value="BOUTIQUE">BOUTIQUE</option>
-                    <option value="SS">SS</option>
-                    <option value="DXQ">DXQ</option>
+                          <option value="FBK">BOUTIQUE</option>
+                          <option value="FSKG">SS KING</option>
+                          <option value="FSST">SS TWIN</option>
+                          <option value="DXQ">DXQ</option>
                   </select>
                   <label htmlFor="roomType">Room Type</label>
                 </div>
@@ -278,9 +279,11 @@ const RoomList = () => {
                           setEditRoom({ ...editRoom, type: e.target.value })
                         }
                       >
-                        <option value="BOUTIQUE">BOUTIQUE</option>
-                        <option value="SS">SS</option>
-                        <option value="DXQ">DXQ</option>
+                        <option value="">-- Select Type --</option>
+                          <option value="FBK">BOUTIQUE</option>
+                          <option value="FSKG">SS KING</option>
+                          <option value="FSST">SS TWIN</option>
+                          <option value="DXQ">DXQ</option>
                       </select>
                       <label htmlFor="editRoomType">Room Type</label>
                     </div>

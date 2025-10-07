@@ -18,6 +18,7 @@ import Menu from "./pages/landingpage/Menu.jsx";
 import Room_LP from "./pages/landingpage/Room.jsx";
 import BookingForm from "./pages/landingpage/BookingForm.jsx";
 import DaftarKonten from "./pages/konten/DaftarKonten.jsx";
+import BookingDetail from "./pages/landingpage/BookingDetail.jsx";
 
 // import './app.css'
 import './assets/css/style.css'
@@ -36,6 +37,8 @@ export default function App() {
       <Route path="/menu" element={<Menu />} />
       <Route path="/rooms" element={<Room_LP />} />
       <Route path="/rooms/book" element={<BookingForm />} />
+
+      <Route path="/booking-detail/:bookingId" element={<BookingDetail />} />
 
       {/* admin */}
       <Route path="/login" element={<Login />} />

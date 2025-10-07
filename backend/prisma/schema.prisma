@@ -26,7 +26,7 @@ model Admin {
 model Room {
   id         Int        @id @default(autoincrement())
   roomNumber String     @unique
-  type       RoomType
+  type       String     @db.VarChar(255)
   price      Int        // harga per malam (rupiah)
   status     RoomStatus @default(VCN)
   createdAt  DateTime   @default(now())
@@ -39,7 +39,7 @@ model Booking {
   id           Int           @id @default(autoincrement())
   room         Room?         @relation(fields: [roomId], references: [id])
   roomId       Int?
-  roomType     RoomType      // jenis kamar yg diminta user (BOUTIQUE/SS/DXQ)
+  roomType     RoomType      // jenis kamar yg diminta user (FBK/FSKG/FSST/DXQ)
   guestName    String
   email        String
   phone        String
@@ -55,8 +55,9 @@ model Booking {
 }
 
 enum RoomType {
-  BOUTIQUE
-  SS
+  FBK
+  FSKG
+  FSST
   DXQ
 }
 

@@ -1,14 +1,17 @@
 import React, { useState } from "react";
 import api from "../../api";
+import { useNavigate } from "react-router-dom";
 
 export default function BookingForm() {
+  const navigate = useNavigate();
+
   const [formData, setFormData] = useState({
     guestName: "",
     email: "",
     phone: "",
     checkIn: "",
     checkOut: "",
-    roomType: "BOUTIQUE",
+    roomType: "FBK",
     notes: "",
   });
 
@@ -26,12 +29,13 @@ export default function BookingForm() {
     setMessage(""); // Hapus pesan lama
 
     try {
-      await api.post("http://localhost:5000/api/booking-user", formData);
-      setMessage("✅ Terima kasih! Booking Anda telah kami terima dan akan segera diproses.");
-      setFormData({
-        guestName: "", email: "", phone: "", checkIn: "",
-        checkOut: "", roomType: "BOUTIQUE", notes: "",
-      });
+      const response = await api.post("http://localhost:5000/api/booking-user", formData);
+      // setMessage("✅ Terima kasih! Booking Anda telah kami terima dan akan segera diproses.");
+      // setFormData({
+      //   guestName: "", email: "", phone: "", checkIn: "",
+      //   checkOut: "", roomType: "BOUTIQUE", notes: "",
+      const newBookingId = response.data.id;
+      navigate(`/booking-detail/${newBookingId}`);
     } catch (error) {
       console.error(error);
       setMessage("❌ Maaf, terjadi kesalahan. Gagal mengirim booking, silakan coba lagi!");
@@ -137,9 +141,9 @@ export default function BookingForm() {
                     value={formData.roomType}
                     onChange={handleChange}
                   >
-                    <option value="BOUTIQUE">Fhandika Boutique - 1377K</option>
-                    <option value="SSK">Fhandika SS King - 1077K</option>
-                    <option value="SST">Fhandika SS Twin - 1077K</option>
+                    <option value="FBK">Fhandika Boutique - 1377K</option>
+                    <option value="FSKG">Fhandika SS King - 1077K</option>
+                    <option value="FSST">Fhandika SS Twin - 1077K</option>
                     <option value="DXQ">Fhandika DXQ - 877K</option>
                   </select>
                 </div>

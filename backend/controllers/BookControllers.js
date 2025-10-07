@@ -165,6 +165,25 @@ export const getBookings = async (req, res) => {
   }
 };
 
+export const getBookingUserById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const booking = await prisma.booking.findUnique({
+      where: { id: Number(id) },
+      // include: { room: true },
+    });
+    if (!booking) {
+      return res.status(404).json({ error: "Booking tidak ditemukan" });
+    }
+    res.json(booking);
+  } catch (err) {
+    console.error("getBookingUserById:", err);
+    res.status(500).json({ error: "Gagal mengambil detail booking" });
+  }
+};
+
+
+
 // Assign a real room to a booking (admin)
 export const assignRoom = async (req, res) => {
   try {
