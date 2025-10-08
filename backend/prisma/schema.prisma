@@ -37,6 +37,7 @@ model Room {
 
 model Booking {
   id           Int           @id @default(autoincrement())
+  bookingCode  String?       @unique
   room         Room?         @relation(fields: [roomId], references: [id])
   roomId       Int?
   roomType     RoomType      // jenis kamar yg diminta user (FBK/FSKG/FSST/DXQ)

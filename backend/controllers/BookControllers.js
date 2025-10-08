@@ -25,6 +25,18 @@ const nightsBetween = (start, end) => {
   return Math.max(1, Math.ceil(diff / msPerDay));
 };
 
+// === TAMBAHKAN HELPER BARU DI SINI ===
+const getBookingCodePrefix = (roomType) => {
+  const mapping = {
+    FBK: "FBK",
+    FSKG: "FSKG",
+    FSST: "FSST",
+    DXQ: "DXQ",
+  };
+  // Mengembalikan prefix yang sesuai, atau 'BOOK' sebagai default
+  return mapping[roomType] || "BOOK";
+};
+
 // Create booking (public)
 export const createBookingUser = async (req, res) => {
   try {
@@ -56,7 +68,15 @@ export const createBookingUser = async (req, res) => {
       },
     });
 
-    return res.status(201).json(booking);
+    const prefix = getBookingCodePrefix(booking.roomType);
+    const bookingCode = `${prefix}${booking.id}`;
+
+    const updatedBooking = await prisma.booking.update({
+      where: { id: booking.id },
+      data: { bookingCode: bookingCode },
+    });
+
+    return res.status(201).json(updatedBooking);
   } catch (err) {
     console.error("createBooking:", err);
     return res.status(500).json({ error: "Gagal membuat booking" });

@@ -3,18 +3,19 @@ import api from "../../api";
 import { useNavigate } from "react-router-dom";
 
 export default function BookingForm() {
-  const navigate = useNavigate();
 
-  const [formData, setFormData] = useState({
+  const initialState = {
     guestName: "",
     email: "",
     phone: "",
     checkIn: "",
     checkOut: "",
-    roomType: "FBK",
+    roomType: "",
     notes: "",
-  });
+  };
 
+  const [formData, setFormData] = useState(initialState);
+  const navigate = useNavigate();
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false); // State untuk loading
 
@@ -43,15 +44,31 @@ export default function BookingForm() {
       setIsLoading(false); // Selesai loading
     }
   };
+
+  const handleReset = () => {
+    setFormData(initialState); // Kembalikan state ke awal
+    setMessage(""); // Hapus pesan error/sukses jika ada
+  };
   
   const alertClass = message.startsWith("✅") ? "alert-success" : "alert-danger";
+
+  // Mendapatkan tanggal hari ini dalam format YYYY-MM-DD
+  const today = new Date().toISOString().split('T')[0];
 
   return (
     <div className="container my-5">
       <div className="row justify-content-center">
         <div className="col-lg-8">
           <div className="card shadow-sm border-0">
-            <div className="card-body p-4 p-md-5">
+            <div className="card-body p-4 p-md-5 position-relative">
+              
+              <button
+                type="button"
+                className="btn btn-link text-secondary position-absolute top-0 start-0 mt-3 ms-3"
+                onClick={() => navigate(-1)}
+              >
+                <i className="bi bi-arrow-left"></i>
+              </button>
               
               <div className="text-center mb-4">
                 <h2 className="card-title fw-bold">Formulir Pemesanan Kamar</h2>
@@ -115,6 +132,7 @@ export default function BookingForm() {
                         value={formData.checkIn}
                         onChange={handleChange}
                         required
+                        min={today}
                       />
                     </div>
                   </div>
@@ -128,6 +146,8 @@ export default function BookingForm() {
                         value={formData.checkOut}
                         onChange={handleChange}
                         required
+                        min={formData.checkIn}
+                        disabled={!formData.checkIn}
                       />
                     </div>
                   </div>
@@ -140,7 +160,9 @@ export default function BookingForm() {
                     name="roomType"
                     value={formData.roomType}
                     onChange={handleChange}
+                    required
                   >
+                    <option value="" disabled>--- Pilih Tipe Kamar ---</option>
                     <option value="FBK">Fhandika Boutique - 1377K</option>
                     <option value="FSKG">Fhandika SS King - 1077K</option>
                     <option value="FSST">Fhandika SS Twin - 1077K</option>
@@ -160,8 +182,15 @@ export default function BookingForm() {
                   ></textarea>
                 </div>
 
-                <div className="d-grid">
-                  <button type="submit" className="btn btn-primary btn-lg" disabled={isLoading}>
+                <div className="d-flex justify-content-center gap-5">
+                  <button
+                    type="button"
+                    className="btn btn-outline-danger"
+                    onClick={handleReset}
+                  >
+                    Kosongkan Form
+                  </button>
+                  <button type="submit" className="btn btn-primary px-4" disabled={isLoading}>
                     {isLoading ? (
                       <>
                         <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>

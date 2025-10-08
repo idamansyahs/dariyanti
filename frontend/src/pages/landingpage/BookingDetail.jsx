@@ -21,6 +21,19 @@ const formatDate = (dateString) => {
   });
 };
 
+// Objek untuk memetakan kode tipe kamar ke nama lengkapnya
+const roomTypeMapping = {
+  FBK: "Fhandika Boutique",
+  FSKG: "Fhandika SS King",
+  FSST: "Fhandika SS Twin",
+  DXQ: "Fhandika DXQ",
+};
+
+// Fungsi untuk mendapatkan nama lengkap, dengan fallback jika kode tidak ditemukan
+const getRoomTypeName = (typeCode) => {
+  return roomTypeMapping[typeCode] || typeCode; // Jika tidak ada di map, tampilkan kode aslinya
+};
+
 // Komponen BookingDetail
 const BookingDetail = () => {
   const { bookingId } = useParams();
@@ -71,7 +84,7 @@ const BookingDetail = () => {
         </p>
       </div>
 
-      <div className="row g-4">
+      <div className="row g-4 justify-content-center">
         <div className="col-md-7">
           <div className="card shadow-sm border-0 h-100">
             {/* ... (CARD HEADER) ... */}
@@ -79,7 +92,7 @@ const BookingDetail = () => {
               <ul className="list-group list-group-flush">
                 <li className="list-group-item d-flex justify-content-between">
                   <span>ID Booking</span>
-                  <strong>#{booking.id}</strong>
+                  <strong>#{booking.bookingCode || booking.id}</strong>
                 </li>
                 <li className="list-group-item d-flex justify-content-between">
                   <span>Nama Pemesan</span>
@@ -87,7 +100,7 @@ const BookingDetail = () => {
                 </li>
                  <li className="list-group-item d-flex justify-content-between">
                   <span>Tipe Kamar</span>
-                  <strong>{booking.roomType}</strong>
+                  <strong>{getRoomTypeName(booking.roomType)}</strong>
                 </li>
                 <li className="list-group-item d-flex justify-content-between">
                   <span>Check-in</span>
