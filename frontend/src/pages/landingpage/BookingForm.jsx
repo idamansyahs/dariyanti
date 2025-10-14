@@ -19,9 +19,55 @@ export default function BookingForm() {
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false); // State untuk loading
 
+  const [isChecking, setIsChecking] = useState(false);
+  const [availability, setAvailability] = useState({
+    checked: false,
+    available: false,
+    message: "",
+  });
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
+  };
+
+  const handleCheckAvailability = async () => {
+    // Validasi input sebelum mengirim
+    if (!formData.checkIn || !formData.checkOut || !formData.roomType) {
+      setAvailability({
+        checked: true,
+        available: false,
+        message: "⚠️ Silakan pilih tanggal check-in, check-out, dan tipe kamar terlebih dahulu.",
+      });
+      return;
+    }
+
+    setIsChecking(true);
+    setAvailability({ checked: false, message: "" }); // Reset status
+
+    try {
+      const response = await api.get("/api/check-availability", {
+        params: {
+          checkIn: formData.checkIn,
+          checkOut: formData.checkOut,
+          roomType: formData.roomType,
+        },
+      });
+      setAvailability({
+        checked: true,
+        available: response.data.available,
+        message: response.data.message,
+      });
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || "Gagal memeriksa ketersediaan.";
+      setAvailability({
+        checked: true,
+        available: false,
+        message: `❌ ${errorMessage}`,
+      });
+    } finally {
+      setIsChecking(false);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -36,7 +82,7 @@ export default function BookingForm() {
       //   guestName: "", email: "", phone: "", checkIn: "",
       //   checkOut: "", roomType: "BOUTIQUE", notes: "",
       const newBookingId = response.data.id;
-      navigate(`/booking-detail/${newBookingId}`);
+      navigate(`/rooms/booking/detail/${newBookingId}`);
     } catch (error) {
       console.error(error);
       setMessage("❌ Maaf, terjadi kesalahan. Gagal mengirim booking, silakan coba lagi!");
@@ -48,6 +94,12 @@ export default function BookingForm() {
   const handleReset = () => {
     setFormData(initialState); // Kembalikan state ke awal
     setMessage(""); // Hapus pesan error/sukses jika ada
+
+    setAvailability({
+      checked: false,
+      available: false,
+      message: "",
+    });
   };
   
   const alertClass = message.startsWith("✅") ? "alert-success" : "alert-danger";
@@ -169,6 +221,34 @@ export default function BookingForm() {
                     <option value="DXQ">Fhandika DXQ - 877K</option>
                   </select>
                 </div>
+
+                <div className="text-center mb-3">
+                  <button
+                    type="button"
+                    className="btn btn-outline-info"
+                    onClick={handleCheckAvailability}
+                    disabled={isChecking || !formData.checkIn || !formData.checkOut || !formData.roomType}
+                  >
+                    {isChecking ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                        <span className="ms-2">Mengecek...</span>
+                      </>
+                    ) : (
+                      "Cek Ketersediaan Kamar"
+                    )}
+                  </button>
+                </div>
+
+                {availability.checked && (
+                  <div 
+                    className={`alert ${availability.available ? 'alert-success' : 'alert-warning'}`} 
+                    role="alert"
+                  >
+                    {availability.available ? `✅ ${availability.message}` : `⚠️ ${availability.message}`}
+                  </div>
+                )}
+
 
                 <div className="input-group mb-4">
                   <span className="input-group-text"><i className="bi bi-pencil-fill"></i></span>

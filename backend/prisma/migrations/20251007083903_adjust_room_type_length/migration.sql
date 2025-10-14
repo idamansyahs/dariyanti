@@ -7,6 +7,3 @@
 */
 -- AlterTable
 ALTER TABLE `booking` MODIFY `roomType` ENUM('FBK', 'FSKG', 'FSST', 'DXQ') NOT NULL;
-
--- AlterTable
-ALTER TABLE `room` MODIFY `type` VARCHAR(255) NOT NULL;

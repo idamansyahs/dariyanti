@@ -19,6 +19,7 @@ import Room_LP from "./pages/landingpage/Room.jsx";
 import BookingForm from "./pages/landingpage/BookingForm.jsx";
 import DaftarKonten from "./pages/konten/DaftarKonten.jsx";
 import BookingDetail from "./pages/landingpage/BookingDetail.jsx";
+import PaymentFinish from './pages/landingpage/PaymentFinish.jsx';
 
 // import './app.css'
 import './assets/css/style.css'
@@ -36,9 +37,11 @@ export default function App() {
       <Route path="/lava-gallery" element={<LavaGallery />} />
       <Route path="/menu" element={<Menu />} />
       <Route path="/rooms" element={<Room_LP />} />
-      <Route path="/rooms/book" element={<BookingForm />} />
+      <Route path="/rooms/booking" element={<BookingForm />} />
 
-      <Route path="/booking-detail/:bookingId" element={<BookingDetail />} />
+      <Route path="/rooms/booking/detail/:bookingId" element={<BookingDetail />} />
+
+      <Route path="/pembayaran-berhasil" element={<PaymentFinish />} />
 
       {/* admin */}
       <Route path="/login" element={<Login />} />

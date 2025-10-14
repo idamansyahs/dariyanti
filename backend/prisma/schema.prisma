@@ -26,7 +26,7 @@ model Admin {
 model Room {
   id         Int        @id @default(autoincrement())
   roomNumber String     @unique
-  type       String     @db.VarChar(255)
+  type       RoomType     
   price      Int        // harga per malam (rupiah)
   status     RoomStatus @default(VCN)
   createdAt  DateTime   @default(now())
@@ -51,6 +51,7 @@ model Booking {
   pricePerNight Int?
   total        Int?
   status       BookingStatus @default(PENDING) // PENDING / CONFIRMED / CHECKED_IN / CHECKED_OUT / CANCELLED
+  payment_status  String   @default("PENDING")
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 }

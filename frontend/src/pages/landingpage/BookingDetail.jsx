@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useLocation, useParams, useNavigate } from 'react-router-dom';
 import api from '../../api';
+import axios from 'axios';
 
 // Helper untuk format mata uang
 const formatCurrency = (amount) => {
@@ -37,9 +38,31 @@ const getRoomTypeName = (typeCode) => {
 // Komponen BookingDetail
 const BookingDetail = () => {
   const { bookingId } = useParams();
+  const navigate = useNavigate();
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [token, setToken] = useState('');
+
+  // Fungsi untuk memproses pembayaran
+    const processPayment = async () => {
+        if (!booking) return;
+
+        try {
+            const response = await axios.post('http://localhost:5000/api/booking/pembayaran', {
+                bookingId: booking.id,
+                totalPrice: booking.total,
+                guestName: booking.guestName,
+                email: booking.email
+            });
+
+            const transactionToken = response.data.token;
+            setToken(transactionToken); // Simpan token ke state
+        } catch (error) {
+            console.error("Gagal mendapatkan token pembayaran:", error);
+            // Tampilkan pesan error kepada user
+        }
+    };
 
   useEffect(() => {
     const fetchBookingData = async () => {
@@ -58,6 +81,33 @@ const BookingDetail = () => {
       fetchBookingData();
     }
   }, [bookingId]);
+
+  // useEffect untuk memicu window.snap.pay saat token berubah
+    useEffect(() => {
+        if (token) {
+            window.snap.pay(token, {
+                onSuccess: function (result) {
+                console.log('Pembayaran Sukses:', result);
+                // Arahkan pengguna ke halaman pembayaran-berhasil dengan query params
+                navigate(`/pembayaran-berhasil?order_id=${result.order_id}&status_code=${result.status_code}&transaction_status=${result.transaction_status}`);
+            },
+            onPending: function (result) {
+                console.log('Pembayaran Pending:', result);
+                // Anda juga bisa mengarahkan ke halaman yang sama untuk status pending
+                 navigate(`/pembayaran-berhasil?order_id=${result.order_id}&status_code=${result.status_code}&transaction_status=${result.transaction_status}`);
+            },
+            onError: function (result) {
+                console.log('Pembayaran Gagal:', result);
+                // Atau untuk status error
+                 navigate(`/pembayaran-berhasil?order_id=${result.order_id}&status_code=${result.status_code}&transaction_status=${result.transaction_status}`);
+            },
+                onClose: function () {
+                    /* User menutup pop-up tanpa menyelesaikan pembayaran */
+                    console.log('Anda belum menyelesaikan pembayaran');
+                }
+            });
+        }
+    }, [token]);
 
   if (loading) {
     return <div className="text-center my-5"><h2>Memuat Detail Pesanan...</h2></div>;
@@ -125,6 +175,12 @@ const BookingDetail = () => {
                   {formatCurrency(booking.total)} 
                 </h4>
               </div>
+              <div className="text-center mt-4">
+                {/* Tombol untuk memicu pembayaran */}
+                <button onClick={processPayment} className="btn btn-primary btn-lg">
+                    Bayar Sekarang
+                </button>
+            </div>
             </div>
           </div>
         </div>

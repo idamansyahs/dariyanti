@@ -97,6 +97,12 @@
   border-radius: 2px;
 }
 
+.btn:disabled,
+.btn.disabled {
+  cursor: not-allowed !important;
+  pointer-events: auto !important;
+}
+
 /*** Navbar ***/
 .navbar-dark .navbar-nav .nav-link {
   position: relative;
