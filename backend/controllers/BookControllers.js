@@ -1,8 +1,16 @@
 // src/controllers/bookingController.js
 import { PrismaClient } from "@prisma/client";
 import { sendMail } from "../src/utils/mailer.js";
+import midtransClient from 'midtrans-client';
 
 const prisma = new PrismaClient();
+
+// Inisialisasi Snap
+let snap = new midtransClient.Snap({
+    isProduction: false, // false untuk sandbox, true untuk production
+    serverKey: process.env.MIDTRANS_SERVER_KEY,
+    clientKey: process.env.MIDTRANS_CLIENT_KEY
+});
 
 const bookingToRoomStatus = (bookingStatus) => {
   switch (bookingStatus) {
@@ -168,6 +176,172 @@ export const updateBooking = async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });
+  }
+};
+
+// Fungsi untuk membuat transaksi Midtrans
+export const createMidtransTransaction = async (req, res) => {
+    try {
+        const { bookingId } = req.body;
+
+        // 1. Cari data booking dari database
+        const booking = await prisma.booking.findUnique({
+            where: { id: Number(bookingId) },
+        });
+
+        if (!booking) {
+            return res.status(404).json({ msg: "Booking tidak ditemukan" });
+        }
+
+        // 2. CEK: Jika token pembayaran sudah ada, langsung kembalikan token tersebut
+        if (booking.paymentToken) {
+            console.log(`Token sudah ada untuk Booking Code ${booking.bookingCode}. Menggunakan token yang ada.`);
+            return res.status(200).json({ token: booking.paymentToken });
+        }
+
+        // 3. JIKA BELUM ADA TOKEN: Buat transaksi baru di Midtrans
+        console.log(`Membuat token baru untuk Booking Code ${booking.bookingCode}.`);
+
+        // Gunakan bookingCode yang unik dan permanen sebagai order_id
+        const parameter = {
+            "transaction_details": {
+                "order_id": booking.bookingCode, // <-- PENTING: Gunakan bookingCode
+                "gross_amount": booking.total
+            },
+            "customer_details": {
+                "first_name": booking.guestName,
+                "email": booking.email
+            },
+            "callbacks": {
+                "finish": `${process.env.FRONTEND_URL}/pembayaran-berhasil`
+            }
+        };
+
+        const transaction = await snap.createTransaction(parameter);
+        const transactionToken = transaction.token;
+
+        // 4. SIMPAN token yang baru dibuat ke database
+        await prisma.booking.update({
+            where: { id: booking.id },
+            data: { paymentToken: transactionToken },
+        });
+
+        console.log(`Token baru ${transactionToken} berhasil dibuat dan disimpan.`);
+        res.status(200).json({ token: transactionToken });
+
+    } catch (error) {
+        console.error("Gagal membuat transaksi Midtrans:", error);
+        res.status(500).json({ msg: "Gagal membuat transaksi Midtrans", error: error.message });
+    }
+};
+
+export const handleMidtransNotification = async (req, res) => {
+  try {
+    const notificationJson = req.body;
+
+    const statusResponse = await snap.transaction.notification(notificationJson);
+    const orderId = statusResponse.order_id; // Ini sekarang adalah bookingCode
+    const transactionStatus = statusResponse.transaction_status;
+    const fraudStatus = statusResponse.fraud_status;
+
+    console.log(`Notifikasi diterima. Order ID (Booking Code): ${orderId}. Status: ${transactionStatus}.`);
+
+    // Cari booking berdasarkan bookingCode, bukan parsing ID lagi
+    const booking = await prisma.booking.findUnique({
+        where: { bookingCode: orderId },
+    });
+
+    if (!booking) {
+        console.warn(`Booking dengan kode ${orderId} tidak ditemukan.`);
+        return res.status(404).send("Booking tidak ditemukan");
+    }
+
+    if (booking.status !== 'PENDING') {
+        console.log(`Booking ${orderId} sudah diproses (status: ${booking.status}). Notifikasi diabaikan.`);
+        return res.status(200).send("OK");
+    }
+
+    let dataToUpdate = {};
+    if (transactionStatus === 'settlement' || (transactionStatus === 'capture' && fraudStatus === 'accept')) {
+        dataToUpdate = {
+            status: 'CONFIRMED',
+            payment_status: 'SUCCESS'
+        };
+    } else if (transactionStatus === 'expire' || transactionStatus === 'cancel' || transactionStatus === 'deny') {
+        dataToUpdate = {
+            status: 'CANCELLED',
+            payment_status: 'EXPIRED'
+        };
+    }
+
+    if (Object.keys(dataToUpdate).length > 0) {
+        await prisma.booking.update({
+            where: { id: booking.id }, // Update menggunakan ID primary key
+            data: dataToUpdate
+        });
+        console.log(`Database untuk Booking ${orderId} berhasil diupdate.`);
+    }
+
+    res.status(200).send("OK");
+
+  } catch (error) {
+    console.error("Kesalahan Webhook Midtrans:", error.message);
+    res.status(500).send("Terjadi kesalahan pada webhook");
+  }
+};
+
+// FUNGSI BARU UNTUK CEK KETERSEDIAAN KAMAR
+export const checkAvailabilityPublic = async (req, res) => {
+  try {
+    const { roomType, checkIn, checkOut } = req.query;
+
+    if (!roomType || !checkIn || !checkOut) {
+      return res.status(400).json({ message: "Tipe kamar, tanggal check-in, dan check-out diperlukan." });
+    }
+
+    const checkInDate = new Date(checkIn);
+    const checkOutDate = new Date(checkOut);
+    
+    if (isNaN(checkInDate.getTime()) || isNaN(checkOutDate.getTime())) {
+        return res.status(400).json({ message: "Format tanggal tidak valid." });
+    }
+
+    // 1. Hitung total kamar untuk tipe yang dipilih
+    const totalRoomsOfType = await prisma.room.count({
+      where: {
+        type: roomType,
+        status: { not: "OOO" }, // Abaikan kamar Out of Order
+      },
+    });
+
+    if (totalRoomsOfType === 0) {
+      return res.json({ available: false, message: "Tipe kamar tidak ditemukan." });
+    }
+
+    // 2. Hitung booking yang tumpang tindih untuk tipe kamar tersebut
+    const conflictingBookings = await prisma.booking.count({
+      where: {
+        roomType: roomType,
+        status: { in: ["PENDING", "CONFIRMED", "CHECKED_IN"] },
+        AND: [
+          { checkIn: { lt: checkOutDate } },
+          { checkOut: { gt: checkInDate } },
+        ],
+      },
+    });
+    
+    // 3. Cek apakah masih ada kamar tersisa
+    const isAvailable = totalRoomsOfType > conflictingBookings;
+
+    if (isAvailable) {
+      res.json({ available: true, message: `Kamar tipe ${roomType} tersedia pada tanggal tersebut.` });
+    } else {
+      res.json({ available: false, message: `Kamar tipe ${roomType} penuh pada tanggal tersebut.` });
+    }
+
+  } catch (error) {
+    console.error("Error checking public availability:", error);
+    res.status(500).json({ message: "Terjadi kesalahan pada server." });
   }
 };
 

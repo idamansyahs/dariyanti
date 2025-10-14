@@ -103,7 +103,7 @@ const Room = () => {
   };
   
   const handleBookNow = (room) => {
-    navigate("/rooms/book", { state: { roomToBook: room } });
+    navigate("/rooms/booking", { state: { roomToBook: room } });
   };
 
 

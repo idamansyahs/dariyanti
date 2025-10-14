@@ -2,7 +2,7 @@ import express from "express";
 import { login, profile } from "../controllers/AuthControllers.js";
 import { authMiddleware } from "../src/middleware/authMiddleware.js";
 import { getKonten, getKontenById, createKonten, updateKonten, deleteKonten } from "../controllers/KontenController.js";
-import { assignRoom, createBooking, createBookingUser, deleteBooking, getBookings, getPublicRooms, updateBooking, updateBookingStatus, available, getBookingUserById } from "../controllers/BookControllers.js";
+import { assignRoom, createBooking, createBookingUser, deleteBooking, getBookings, getPublicRooms, updateBooking, updateBookingStatus, available, getBookingUserById, createMidtransTransaction, handleMidtransNotification, checkAvailabilityPublic } from "../controllers/BookControllers.js";
 import { createRoom, deleteRoom, getRoomById, getRooms, updateRoom, updateRoomStatus } from "../controllers/RoomControllers.js";
 
 const router = express.Router();
@@ -17,6 +17,15 @@ router.post("/login", login);
 // Booking
 router.post("/booking-user", createBookingUser);
 router.get("/booking-user/:id", getBookingUserById);
+
+// Route untuk membuat token transaksi Midtrans
+router.post("/booking/pembayaran", createMidtransTransaction);
+
+// Route untuk menerima notifikasi webhook dari Midtrans
+router.post('/midtrans-notification', handleMidtransNotification);
+
+// Route untuk mengecheck ketersediaan kamar
+router.get("/check-availability", checkAvailabilityPublic);
 
 // Protected
 router.get("/room", authMiddleware, getRooms);

@@ -16,7 +16,7 @@ CREATE TABLE `Admin` (
 CREATE TABLE `Room` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `roomNumber` VARCHAR(191) NOT NULL,
-    `type` ENUM('BOUTIQUE', 'SS', 'DXQ') NOT NULL,
+    `type` ENUM('FBK', 'FSKG', 'FSST', 'DXQ') NOT NULL,
     `price` INTEGER NOT NULL,
     `status` ENUM('VCN', 'VCI', 'OCCUPIED', 'VDN', 'OOO') NOT NULL DEFAULT 'VCN',
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
@@ -30,7 +30,7 @@ CREATE TABLE `Room` (
 CREATE TABLE `Booking` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `roomId` INTEGER NULL,
-    `roomType` ENUM('BOUTIQUE', 'SS', 'DXQ') NOT NULL,
+    `roomType` ENUM('FBK', 'FSKG', 'FSST', 'DXQ') NOT NULL,
     `guestName` VARCHAR(191) NOT NULL,
     `email` VARCHAR(191) NOT NULL,
     `phone` VARCHAR(191) NOT NULL,
