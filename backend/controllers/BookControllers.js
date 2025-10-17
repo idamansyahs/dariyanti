@@ -2,6 +2,7 @@
 import { PrismaClient } from "@prisma/client";
 import { sendMail } from "../src/utils/mailer.js";
 import midtransClient from 'midtrans-client';
+import axios from 'axios';
 
 const prisma = new PrismaClient();
 
@@ -11,6 +12,12 @@ let snap = new midtransClient.Snap({
     serverKey: process.env.MIDTRANS_SERVER_KEY,
     clientKey: process.env.MIDTRANS_CLIENT_KEY
 });
+
+// Fungsi untuk membuat booking code unik
+const generateBookingCode = (roomType) => {
+    const randomNum = Math.floor(10 + Math.random() * 90); // Angka acak antara 10-99
+    return `${roomType}${randomNum}`;
+};
 
 const bookingToRoomStatus = (bookingStatus) => {
   switch (bookingStatus) {
@@ -193,41 +200,54 @@ export const createMidtransTransaction = async (req, res) => {
             return res.status(404).json({ msg: "Booking tidak ditemukan" });
         }
 
-        // 2. CEK: Jika token pembayaran sudah ada, langsung kembalikan token tersebut
-        if (booking.paymentToken) {
-            console.log(`Token sudah ada untuk Booking Code ${booking.bookingCode}. Menggunakan token yang ada.`);
-            return res.status(200).json({ token: booking.paymentToken });
+        // Cek jika status booking tidak lagi PENDING
+        if (booking.status !== 'PENDING') {
+            return res.status(400).json({ msg: `Tidak dapat membuat pembayaran. Status pesanan adalah: ${booking.status}` });
         }
 
-        // 3. JIKA BELUM ADA TOKEN: Buat transaksi baru di Midtrans
-        console.log(`Membuat token baru untuk Booking Code ${booking.bookingCode}.`);
-
-        // Gunakan bookingCode yang unik dan permanen sebagai order_id
+        // ==================== PERBAIKAN UTAMA DI SINI ====================
+        // Selalu buat order_id BARU dan UNIK setiap kali fungsi ini dipanggil
+        // dengan menambahkan timestamp. Ini mencegah error "order_id sudah digunakan".
+        const new_midtrans_order_id = `${booking.bookingCode}-${Date.now()}`;
+        // ===============================================================
+        
+        console.log(`Membuat transaksi Midtrans baru dengan Order ID unik: ${new_midtrans_order_id}`);
+        
         const parameter = {
             "transaction_details": {
-                "order_id": booking.bookingCode, // <-- PENTING: Gunakan bookingCode
+                "order_id": new_midtrans_order_id, // Gunakan order_id yang baru dan unik
                 "gross_amount": booking.total
             },
             "customer_details": {
                 "first_name": booking.guestName,
-                "email": booking.email
+                "email": booking.email,
+                "phone": booking.phone
             },
             "callbacks": {
-                "finish": `${process.env.FRONTEND_URL}/pembayaran-berhasil`
+                "finish": `${process.env.FRONTEND_URL}/payment-finish`,
+                "unfinish": `${process.env.FRONTEND_URL}/payment-finish`,
+                "error": `${process.env.FRONTEND_URL}/payment-finish`
+            },
+            expiry: {
+                unit: "minute",
+                duration: 10 // Beri waktu 10 menit
             }
         };
 
         const transaction = await snap.createTransaction(parameter);
         const transactionToken = transaction.token;
 
-        // 4. SIMPAN token yang baru dibuat ke database
+        // SIMPAN token dan order_id BARU ke database
         await prisma.booking.update({
             where: { id: booking.id },
-            data: { paymentToken: transactionToken },
+            data: { 
+                paymentToken: transactionToken,
+                midtransOrderId: new_midtrans_order_id // Simpan juga order_id baru
+            },
         });
 
-        console.log(`Token baru ${transactionToken} berhasil dibuat dan disimpan.`);
-        res.status(200).json({ token: transactionToken });
+        console.log(`Token baru ${transactionToken} berhasil dibuat dan disimpan untuk Order ID ${new_midtrans_order_id}.`);
+        res.status(200).json({ token: transactionToken, orderId: new_midtrans_order_id });
 
     } catch (error) {
         console.error("Gagal membuat transaksi Midtrans:", error);
@@ -237,56 +257,170 @@ export const createMidtransTransaction = async (req, res) => {
 
 export const handleMidtransNotification = async (req, res) => {
   try {
-    const notificationJson = req.body;
+    console.log("=== Webhook Midtrans Masuk ===");
+    console.log("Body:", req.body);
 
+    const notificationJson = req.body;
     const statusResponse = await snap.transaction.notification(notificationJson);
-    const orderId = statusResponse.order_id; // Ini sekarang adalah bookingCode
+    console.log("Status Response:", statusResponse);
+
+    const orderId = statusResponse.order_id;
     const transactionStatus = statusResponse.transaction_status;
     const fraudStatus = statusResponse.fraud_status;
 
-    console.log(`Notifikasi diterima. Order ID (Booking Code): ${orderId}. Status: ${transactionStatus}.`);
+    console.log(`Notifikasi diterima. Order ID: ${orderId}, Status: ${transactionStatus}`);
 
-    // Cari booking berdasarkan bookingCode, bukan parsing ID lagi
+    // ==================== PERBAIKAN UTAMA DI SINI ====================
+    // Cari booking berdasarkan kolom 'midtransOrderId', bukan 'bookingCode'.
+    // Kolom 'midtransOrderId' berisi nilai yang sama persis dengan 'order_id' dari Midtrans.
     const booking = await prisma.booking.findUnique({
-        where: { bookingCode: orderId },
+      where: { midtransOrderId: orderId },
     });
+    // ===============================================================
 
     if (!booking) {
-        console.warn(`Booking dengan kode ${orderId} tidak ditemukan.`);
-        return res.status(404).send("Booking tidak ditemukan");
-    }
-
-    if (booking.status !== 'PENDING') {
-        console.log(`Booking ${orderId} sudah diproses (status: ${booking.status}). Notifikasi diabaikan.`);
-        return res.status(200).send("OK");
+      console.warn(`Booking dengan order_id Midtrans ${orderId} tidak ditemukan.`);
+      return res.status(404).send("Booking tidak ditemukan");
     }
 
     let dataToUpdate = {};
+
     if (transactionStatus === 'settlement' || (transactionStatus === 'capture' && fraudStatus === 'accept')) {
-        dataToUpdate = {
-            status: 'CONFIRMED',
-            payment_status: 'SUCCESS'
-        };
-    } else if (transactionStatus === 'expire' || transactionStatus === 'cancel' || transactionStatus === 'deny') {
-        dataToUpdate = {
-            status: 'CANCELLED',
-            payment_status: 'EXPIRED'
-        };
+      dataToUpdate = { status: 'CONFIRMED', payment_status: 'SUCCESS' };
+    } else if (transactionStatus === 'expire') {
+      dataToUpdate = { status: 'CANCELLED', payment_status: 'EXPIRED' };
+    } else if (transactionStatus === 'cancel' || transactionStatus === 'deny') {
+      dataToUpdate = { status: 'CANCELLED', payment_status: 'CANCELLED' };
     }
 
     if (Object.keys(dataToUpdate).length > 0) {
-        await prisma.booking.update({
-            where: { id: booking.id }, // Update menggunakan ID primary key
-            data: dataToUpdate
-        });
-        console.log(`Database untuk Booking ${orderId} berhasil diupdate.`);
+      await prisma.booking.update({
+        where: { id: booking.id },
+        data: dataToUpdate,
+      });
+      console.log(`Booking ${booking.bookingCode} (order_id: ${orderId}) berhasil diupdate.`);
+    } else {
+      console.log(`Tidak ada perubahan status untuk transaksi ${orderId}.`);
     }
 
     res.status(200).send("OK");
+  } catch (error) {
+    console.error("Kesalahan Webhook Midtrans:", error);
+    res.status(500).send("Terjadi kesalahan pada webhook");
+  }
+};
+
+// FUNGSI BARU UNTUK REGENERATE TOKEN
+export const regenerateToken = async (req, res) => {
+  console.log("=============================================");
+  console.log("MEMULAI PROSES REGENERATE TOKEN PADA:", new Date().toISOString());
+  
+  const { booking_code } = req.body;
+  console.log(`1. Menerima permintaan untuk booking_code: ${booking_code}`);
+
+  if (!booking_code) {
+    console.error("   -> GAGAL: Booking code tidak ada dalam request body.");
+    return res.status(400).json({ msg: "Booking code diperlukan" });
+  }
+
+  try {
+    console.log(`2. Mencari data booking di database...`);
+    const existingBooking = await prisma.booking.findUnique({
+      where: { 
+        bookingCode: booking_code 
+      }
+    });
+
+    if (!existingBooking) {
+      console.error(`   -> GAGAL: Booking dengan kode ${booking_code} tidak ditemukan.`);
+      return res.status(404).json({ msg: "Booking tidak ditemukan" });
+    }
+    console.log(`   -> SUKSES: Data booking ditemukan untuk tamu: ${existingBooking.guestName}`);
+    console.log(`   -> Status booking saat ini: ${existingBooking.status}`);
+
+    // ==================== PERBAIKAN UTAMA ====================
+    // Hentikan proses jika status BUKAN 'PENDING'.
+    // Ini adalah satu-satunya status yang memperbolehkan pembayaran ulang.
+    if (existingBooking.status !== 'PENDING') {
+      console.error(`   -> GAGAL: Percobaan regenerate token untuk booking dengan status final: ${existingBooking.status}.`);
+      console.log("=============================================\n");
+      return res.status(400).json({ msg: `Tidak dapat melanjutkan pembayaran. Status pesanan saat ini adalah: ${existingBooking.status}`});
+    }
+    // =========================================================
+
+    console.log("3. Menginisialisasi Midtrans Snap...");
+    let snap = new midtransClient.Snap({
+      isProduction: false,
+      serverKey: process.env.MIDTRANS_SERVER_KEY,
+      clientKey: process.env.MIDTRANS_CLIENT_KEY,
+    });
+    console.log("   -> SUKSES: Midtrans Snap terinisialisasi.");
+      
+    // ==================== PERBAIKAN UTAMA ====================
+    // Buat order_id BARU dan UNIK untuk Midtrans dengan menambahkan timestamp.
+    // Ini akan mencegah error "order_id sudah digunakan".
+    const new_midtrans_order_id = `${existingBooking.bookingCode}-${Date.now()}`;
+    // =========================================================
+    
+    console.log(`4. Membuat parameter untuk transaksi Midtrans dengan order_id baru: ${new_midtrans_order_id}`);
+
+    const parameter = {
+      transaction_details: {
+        order_id: new_midtrans_order_id,
+        gross_amount: existingBooking.total,
+      },
+      customer_details: {
+        first_name: existingBooking.guestName,
+        email: existingBooking.email,
+        phone: existingBooking.phone
+      },
+      // Optional: Menambahkan detail item
+      item_details: [{
+        id: existingBooking.roomType, 
+        price: existingBooking.total,
+        quantity: 1,
+        name: `Booking Kamar Tipe ${existingBooking.roomType} #${existingBooking.bookingCode}`,
+      }],
+      credit_card: {
+        secure: true,
+      },
+       expiry: {
+            unit: "minute",
+            duration: 10 // Beri waktu 10 menit untuk pembayaran
+        }
+    };
+    console.log("   -> Parameter:", JSON.stringify(parameter, null, 2));
+
+    console.log("5. Mengirim permintaan pembuatan transaksi ke Midtrans...");
+    const transaction = await snap.createTransaction(parameter);
+    const newTransactionToken = transaction.token;
+    console.log("   -> SUKSES: Midtrans merespons dengan token baru.");
+
+    console.log("6. Memperbarui data booking di database dengan token & order_id baru...");
+    await prisma.booking.update({
+      where: { id: existingBooking.id },
+      data: {
+        paymentToken: newTransactionToken,
+        midtransOrderId: new_midtrans_order_id, // Simpan order_id baru untuk referensi
+      },
+    });
+    console.log("   -> SUKSES: Database berhasil diperbarui.");
+    
+    console.log("7. Mengirim token baru ke frontend.");
+    console.log("=============================================\n");
+    res.status(200).json({ token: newTransactionToken });
 
   } catch (error) {
-    console.error("Kesalahan Webhook Midtrans:", error.message);
-    res.status(500).send("Terjadi kesalahan pada webhook");
+    console.error("   -> ERROR KRITIS PADA BLOK `try...catch`!");
+    console.error("   -> Pesan Error:", error.message);
+    if (error.ApiResponse) {
+        console.error("   -> Respons API Midtrans:", error.ApiResponse);
+    }
+    console.log("=============================================\n");
+    res.status(500).json({ 
+        msg: 'Gagal membuat token pembayaran baru di server.', 
+        error: error.message 
+    });
   }
 };
 
@@ -376,7 +510,23 @@ export const getBookingUserById = async (req, res) => {
   }
 };
 
+export const getBookingByCode = async (req, res) => {
+  try {
+    const { bookingCode } = req.params;
+    const booking = await prisma.booking.findUnique({
+      where: { bookingCode: bookingCode },
+    });
 
+    if (!booking) {
+      return res.status(404).json({ message: "Booking tidak ditemukan." });
+    }
+
+    res.json(booking);
+  } catch (error) {
+    console.error("Error fetching booking by code:", error);
+    res.status(500).json({ message: "Terjadi kesalahan pada server." });
+  }
+};
 
 // Assign a real room to a booking (admin)
 export const assignRoom = async (req, res) => {
@@ -472,6 +622,87 @@ export const getPublicRooms = async (req, res) => {
   }
 };
 
+export const cancelBookingUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Cari booking yang sesuai
+    const booking = await prisma.booking.findUnique({
+      where: { id: Number(id) },
+    });
+
+    // Jika tidak ditemukan atau statusnya bukan PENDING, kirim error
+    if (!booking) {
+      return res.status(404).json({ message: "Booking tidak ditemukan." });
+    }
+
+    if (booking.status !== "PENDING") {
+      return res.status(400).json({ message: "Hanya pesanan yang masih pending yang bisa dibatalkan." });
+    }
+
+    // Cek apakah booking ini memiliki bookingCode (yang digunakan sebagai order_id)
+    if (booking.bookingCode) {
+      const serverKey = process.env.MIDTRANS_SERVER_KEY;
+      const midtransUrl = `https://api.sandbox.midtrans.com/v2/${booking.bookingCode}/cancel`;
+      
+      // Enkripsi Server Key untuk otorisasi (Basic Auth)
+      const authString = Buffer.from(`${serverKey}:`).toString('base64');
+
+      try {
+        console.log(`Mencoba membatalkan transaksi Midtrans: ${booking.bookingCode}`);
+        // Kirim permintaan pembatalan ke API Midtrans
+        await axios.post(midtransUrl, {}, {
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'Authorization': `Basic ${authString}`
+          }
+        });
+        console.log(`Transaksi Midtrans ${booking.bookingCode} berhasil dibatalkan.`);
+      } catch (midtransError) {
+        // Jika gagal, catat errornya tapi proses tetap lanjut.
+        // Ini untuk menangani kasus jika transaksi sudah kedaluwarsa di sisi Midtrans.
+        console.error(`Gagal membatalkan transaksi Midtrans ${booking.bookingCode}:`, midtransError.response?.data || midtransError.message);
+      }
+    }
+
+    // Update status booking menjadi CANCELLED
+    const cancelledBooking = await prisma.booking.update({
+      where: { id: Number(id) },
+      data: { status: "CANCELLED", payment_status: "CANCELLED"},
+    });
+
+    res.json({ message: "Pesanan telah berhasil dibatalkan.", booking: cancelledBooking });
+  } catch (err) {
+    console.error("Error cancelling booking:", err);
+    res.status(500).json({ message: "Terjadi kesalahan pada server." });
+  }
+};
+
+export const getBookingStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const booking = await prisma.booking.findUnique({
+      where: { id: Number(id) },
+      select: { status: true, payment_status: true, bookingCode: true },
+    });
+
+    if (!booking) {
+      return res.status(404).json({ message: "Booking tidak ditemukan" });
+    }
+
+    res.json({
+      status: booking.status,
+      payment_status: booking.payment_status,
+      bookingCode: booking.bookingCode,
+    });
+  } catch (error) {
+    console.error("Gagal mendapatkan status booking:", error);
+    res.status(500).json({ message: "Gagal memeriksa status booking" });
+  }
+};
+
 // Delete booking
 export const deleteBooking = async (req, res) => {
   try {
@@ -531,3 +762,43 @@ export const available = async (req, res) => {
   }
 }
 
+// FUNGSI BARU UNTUK MEMBERSIHKAN BOOKING YANG EXPIRED
+export const cleanExpiredBookings = async () => {
+  console.log('Running scheduled job: Cleaning expired bookings...');
+  try {
+    // Tentukan batas waktu (misalnya, 10 menit yang lalu)
+    const expiryTime = new Date(Date.now() - 10 * 60 * 1000);
+
+    // Cari semua booking yang masih PENDING dan dibuat lebih dari 10 menit yang lalu
+    const expiredBookings = await prisma.booking.findMany({
+      where: {
+        status: 'PENDING',
+        createdAt: {
+          lt: expiryTime, // lt = less than (kurang dari)
+        },
+      },
+    });
+
+    if (expiredBookings.length > 0) {
+      const idsToCancel = expiredBookings.map(b => b.id);
+      console.log(`Found ${expiredBookings.length} expired bookings to cancel. IDs: ${idsToCancel.join(', ')}`);
+
+      // Ubah status semua booking yang kedaluwarsa menjadi CANCELLED
+      await prisma.booking.updateMany({
+        where: {
+          id: {
+            in: idsToCancel,
+          },
+        },
+        data: {
+          status: 'CANCELLED',
+          payment_status: 'FAILED',
+        },
+      });
+    } else {
+      console.log('No expired bookings found.');
+    }
+  } catch (error) {
+    console.error('Error during scheduled job:', error);
+  }
+};
