@@ -2,7 +2,7 @@ import express from "express";
 import { login, profile } from "../controllers/AuthControllers.js";
 import { authMiddleware } from "../src/middleware/authMiddleware.js";
 import { getKonten, getKontenById, createKonten, updateKonten, deleteKonten } from "../controllers/KontenController.js";
-import { assignRoom, createBooking, createBookingUser, deleteBooking, getBookings, getPublicRooms, updateBooking, updateBookingStatus, available, getBookingUserById, createMidtransTransaction, handleMidtransNotification, checkAvailabilityPublic } from "../controllers/BookControllers.js";
+import { assignRoom, createBooking, createBookingUser, deleteBooking, getBookings, getPublicRooms, updateBooking, updateBookingStatus, available, getBookingUserById, createMidtransTransaction, handleMidtransNotification, checkAvailabilityPublic, cancelBookingUser, getBookingStatus, getBookingByCode  } from "../controllers/BookControllers.js";
 import { createRoom, deleteRoom, getRoomById, getRooms, updateRoom, updateRoomStatus } from "../controllers/RoomControllers.js";
 
 const router = express.Router();
@@ -17,6 +17,11 @@ router.post("/login", login);
 // Booking
 router.post("/booking-user", createBookingUser);
 router.get("/booking-user/:id", getBookingUserById);
+router.get("/booking-status/:id", getBookingStatus);
+router.get("/booking-code/:bookingCode", getBookingByCode);
+
+// Route untuk cancel pembayaran
+router.put("/booking-user/:id/cancel", cancelBookingUser);
 
 // Route untuk membuat token transaksi Midtrans
 router.post("/booking/pembayaran", createMidtransTransaction);

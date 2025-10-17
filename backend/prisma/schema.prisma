@@ -52,6 +52,8 @@ model Booking {
   total        Int?
   status       BookingStatus @default(PENDING) // PENDING / CONFIRMED / CHECKED_IN / CHECKED_OUT / CANCELLED
   payment_status  String   @default("PENDING")
+  paymentToken    String?    @unique
+  midtransOrderId String?  @unique
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 }

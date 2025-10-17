@@ -41,7 +41,7 @@ export default function App() {
 
       <Route path="/rooms/booking/detail/:bookingId" element={<BookingDetail />} />
 
-      <Route path="/pembayaran-berhasil" element={<PaymentFinish />} />
+      <Route path="/payment-finish" element={<PaymentFinish />} />
 
       {/* admin */}
       <Route path="/login" element={<Login />} />

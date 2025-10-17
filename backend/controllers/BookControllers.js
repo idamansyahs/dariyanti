@@ -2,6 +2,7 @@
 import { PrismaClient } from "@prisma/client";
 import { sendMail } from "../src/utils/mailer.js";
 import midtransClient from 'midtrans-client';
+import axios from 'axios';
 
 const prisma = new PrismaClient();
 
@@ -184,10 +185,31 @@ export const createMidtransTransaction = async (req, res) => {
     try {
         const { bookingId, totalPrice, guestName, email } = req.body;
 
-        // Membuat parameter untuk transaksi Midtrans
-        let parameter = {
+        // 1. Cari data booking dari database
+        const booking = await prisma.booking.findUnique({
+            where: { id: Number(bookingId) },
+        });
+
+        if (!booking) {
+            return res.status(404).json({ msg: "Booking tidak ditemukan" });
+        }
+
+        // 2. CEK: Jika token pembayaran sudah ada, langsung kembalikan token tersebut
+        if (booking.paymentToken) {
+            console.log(`Token sudah ada untuk Booking Code ${booking.bookingCode}. Menggunakan token yang ada.`);
+            return res.status(200).json({ token: booking.paymentToken });
+        }
+
+        // 3. JIKA BELUM ADA TOKEN: Buat transaksi baru di Midtrans
+        console.log(`Membuat token baru untuk Booking Code ${booking.bookingCode}.`);
+
+        // Gunakan bookingCode yang sudah ada sebagai order_id
+        const orderId = booking.bookingCode;
+        
+        // Gunakan bookingCode yang unik dan permanen sebagai order_id
+        const parameter = {
             "transaction_details": {
-                "order_id": `BOOKING-${bookingId}-${Date.now()}`, // ID order yang unik
+                "order_id": orderId,
                 "gross_amount": totalPrice
             },
             "customer_details": {
@@ -195,72 +217,90 @@ export const createMidtransTransaction = async (req, res) => {
                 "email": email
             },
             "callbacks": {
-                // URL di frontend Anda yang akan menangani hasil pembayaran
-                "finish": `${process.env.FRONTEND_URL}/pembayaran-berhasil`
-            }
+                "finish": `${process.env.FRONTEND_URL}/payment-finish`,
+                "unfinish": `${process.env.FRONTEND_URL}/payment-finish`,
+                "error": `${process.env.FRONTEND_URL}/payment-finish`
+            },
+            expiry: {
+    unit: "minute",
+    duration: 1 // hanya 1 menit
+  }
         };
 
-        // Membuat transaksi menggunakan Snap
         const transaction = await snap.createTransaction(parameter);
         const transactionToken = transaction.token;
 
-        console.log('transactionToken:', transactionToken);
-        res.status(200).json({ token: transactionToken });
+        // 4. SIMPAN token yang baru dibuat ke database
+        await prisma.booking.update({
+            where: { id: booking.id },
+            data: { paymentToken: transactionToken },
+        });
+
+        console.log(`Midtrans transaction created with Order ID: ${orderId}`);
+        console.log(`Token baru ${transactionToken} berhasil dibuat dan disimpan.`);
+        res.status(200).json({ token: transactionToken, orderId: orderId });
 
     } catch (error) {
-        console.error(error);
+        console.error("Gagal membuat transaksi Midtrans:", error);
         res.status(500).json({ msg: "Gagal membuat transaksi Midtrans", error: error.message });
     }
 };
 
 export const handleMidtransNotification = async (req, res) => {
   try {
+    console.log("=== Webhook Midtrans Masuk ===");
+    console.log("Headers:", req.headers);
+    console.log("Body:", req.body);
+
+    // Pastikan body terbaca
+    if (!req.body || Object.keys(req.body).length === 0) {
+      console.error("Body webhook kosong!");
+      return res.status(400).send("Empty body");
+    }
+
     const notificationJson = req.body;
-
-    // 1. Terima notifikasi dari Midtrans
     const statusResponse = await snap.transaction.notification(notificationJson);
-    let orderId = statusResponse.order_id;
-    let transactionStatus = statusResponse.transaction_status;
-    let fraudStatus = statusResponse.fraud_status;
+    console.log("Status Response:", statusResponse);
 
-    console.log(`Transaksi diterima. Order ID: ${orderId}. Status: ${transactionStatus}. Fraud Status: ${fraudStatus}`);
+    const orderId = statusResponse.order_id;
+    const transactionStatus = statusResponse.transaction_status;
+    const fraudStatus = statusResponse.fraud_status;
 
-    // 2. Ekstrak Booking ID dari order_id (misal format: "BOOKING-123-TIMESTAMP")
-    const bookingId = parseInt(orderId.split('-')[1]);
+    console.log(`Notifikasi diterima. Order ID: ${orderId}, Status: ${transactionStatus}`);
 
-    if (!bookingId) {
-        console.error("Gagal parsing bookingId dari orderId:", orderId);
-        return res.status(400).send("Invalid order_id format");
+    const booking = await prisma.booking.findUnique({
+      where: { bookingCode: orderId },
+    });
+
+    if (!booking) {
+      console.warn(`Booking dengan kode ${orderId} tidak ditemukan.`);
+      return res.status(404).send("Booking tidak ditemukan");
     }
 
-    // 3. Update status pembayaran di database berdasarkan notifikasi
-    let newPaymentStatus;
-    if (transactionStatus == 'capture') {
-        if (fraudStatus == 'accept') {
-            newPaymentStatus = 'SUCCESS';
-        }
-    } else if (transactionStatus == 'settlement') {
-        newPaymentStatus = 'SUCCESS';
-    } else if (transactionStatus == 'cancel' || transactionStatus == 'deny' || transactionStatus == 'expire') {
-        newPaymentStatus = 'FAILED';
-    } else if (transactionStatus == 'pending') {
-        newPaymentStatus = 'PENDING';
+    let dataToUpdate = {};
+
+    if (transactionStatus === 'settlement' || (transactionStatus === 'capture' && fraudStatus === 'accept')) {
+      dataToUpdate = { status: 'CONFIRMED', payment_status: 'SUCCESS' };
+    } else if (transactionStatus === 'expire') {
+      dataToUpdate = { status: 'CANCELLED', payment_status: 'EXPIRED' };
+    } else if (transactionStatus === 'cancel' || transactionStatus === 'deny') {
+      dataToUpdate = { status: 'CANCELLED', payment_status: 'CANCELLED' };
     }
 
-    if (newPaymentStatus) {
-        await prisma.booking.update({
-            where: { id: bookingId },
-            data: { payment_status: newPaymentStatus }
-        });
-        console.log(`Booking ID ${bookingId} status pembayaran diupdate menjadi ${newPaymentStatus}`);
+    if (Object.keys(dataToUpdate).length > 0) {
+      await prisma.booking.update({
+        where: { id: booking.id },
+        data: dataToUpdate,
+      });
+      console.log(`Booking ${orderId} berhasil diupdate.`);
+    } else {
+      console.log(`Tidak ada perubahan status untuk transaksi ${orderId}.`);
     }
 
-    // 4. Kirim respons 200 OK ke Midtrans
     res.status(200).send("OK");
-
   } catch (error) {
-    console.error("Webhook Error:", error.message);
-    res.status(500).send("Webhook Error");
+    console.error("Kesalahan Webhook Midtrans:", error);
+    res.status(500).send("Terjadi kesalahan pada webhook");
   }
 };
 
@@ -350,7 +390,23 @@ export const getBookingUserById = async (req, res) => {
   }
 };
 
+export const getBookingByCode = async (req, res) => {
+  try {
+    const { bookingCode } = req.params;
+    const booking = await prisma.booking.findUnique({
+      where: { bookingCode: bookingCode },
+    });
 
+    if (!booking) {
+      return res.status(404).json({ message: "Booking tidak ditemukan." });
+    }
+
+    res.json(booking);
+  } catch (error) {
+    console.error("Error fetching booking by code:", error);
+    res.status(500).json({ message: "Terjadi kesalahan pada server." });
+  }
+};
 
 // Assign a real room to a booking (admin)
 export const assignRoom = async (req, res) => {
@@ -446,6 +502,87 @@ export const getPublicRooms = async (req, res) => {
   }
 };
 
+export const cancelBookingUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Cari booking yang sesuai
+    const booking = await prisma.booking.findUnique({
+      where: { id: Number(id) },
+    });
+
+    // Jika tidak ditemukan atau statusnya bukan PENDING, kirim error
+    if (!booking) {
+      return res.status(404).json({ message: "Booking tidak ditemukan." });
+    }
+
+    if (booking.status !== "PENDING") {
+      return res.status(400).json({ message: "Hanya pesanan yang masih pending yang bisa dibatalkan." });
+    }
+
+    // Cek apakah booking ini memiliki bookingCode (yang digunakan sebagai order_id)
+    if (booking.bookingCode) {
+      const serverKey = process.env.MIDTRANS_SERVER_KEY;
+      const midtransUrl = `https://api.sandbox.midtrans.com/v2/${booking.bookingCode}/cancel`;
+      
+      // Enkripsi Server Key untuk otorisasi (Basic Auth)
+      const authString = Buffer.from(`${serverKey}:`).toString('base64');
+
+      try {
+        console.log(`Mencoba membatalkan transaksi Midtrans: ${booking.bookingCode}`);
+        // Kirim permintaan pembatalan ke API Midtrans
+        await axios.post(midtransUrl, {}, {
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'Authorization': `Basic ${authString}`
+          }
+        });
+        console.log(`Transaksi Midtrans ${booking.bookingCode} berhasil dibatalkan.`);
+      } catch (midtransError) {
+        // Jika gagal, catat errornya tapi proses tetap lanjut.
+        // Ini untuk menangani kasus jika transaksi sudah kedaluwarsa di sisi Midtrans.
+        console.error(`Gagal membatalkan transaksi Midtrans ${booking.bookingCode}:`, midtransError.response?.data || midtransError.message);
+      }
+    }
+
+    // Update status booking menjadi CANCELLED
+    const cancelledBooking = await prisma.booking.update({
+      where: { id: Number(id) },
+      data: { status: "CANCELLED", payment_status: "CANCELLED"},
+    });
+
+    res.json({ message: "Pesanan telah berhasil dibatalkan.", booking: cancelledBooking });
+  } catch (err) {
+    console.error("Error cancelling booking:", err);
+    res.status(500).json({ message: "Terjadi kesalahan pada server." });
+  }
+};
+
+export const getBookingStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const booking = await prisma.booking.findUnique({
+      where: { id: Number(id) },
+      select: { status: true, payment_status: true, bookingCode: true },
+    });
+
+    if (!booking) {
+      return res.status(404).json({ message: "Booking tidak ditemukan" });
+    }
+
+    res.json({
+      status: booking.status,
+      payment_status: booking.payment_status,
+      bookingCode: booking.bookingCode,
+    });
+  } catch (error) {
+    console.error("Gagal mendapatkan status booking:", error);
+    res.status(500).json({ message: "Gagal memeriksa status booking" });
+  }
+};
+
 // Delete booking
 export const deleteBooking = async (req, res) => {
   try {
@@ -505,3 +642,43 @@ export const available = async (req, res) => {
   }
 }
 
+// FUNGSI BARU UNTUK MEMBERSIHKAN BOOKING YANG EXPIRED
+export const cleanExpiredBookings = async () => {
+  console.log('Running scheduled job: Cleaning expired bookings...');
+  try {
+    // Tentukan batas waktu (misalnya, 10 menit yang lalu)
+    const expiryTime = new Date(Date.now() - 10 * 60 * 1000);
+
+    // Cari semua booking yang masih PENDING dan dibuat lebih dari 10 menit yang lalu
+    const expiredBookings = await prisma.booking.findMany({
+      where: {
+        status: 'PENDING',
+        createdAt: {
+          lt: expiryTime, // lt = less than (kurang dari)
+        },
+      },
+    });
+
+    if (expiredBookings.length > 0) {
+      const idsToCancel = expiredBookings.map(b => b.id);
+      console.log(`Found ${expiredBookings.length} expired bookings to cancel. IDs: ${idsToCancel.join(', ')}`);
+
+      // Ubah status semua booking yang kedaluwarsa menjadi CANCELLED
+      await prisma.booking.updateMany({
+        where: {
+          id: {
+            in: idsToCancel,
+          },
+        },
+        data: {
+          status: 'CANCELLED',
+          payment_status: 'FAILED',
+        },
+      });
+    } else {
+      console.log('No expired bookings found.');
+    }
+  } catch (error) {
+    console.error('Error during scheduled job:', error);
+  }
+};
