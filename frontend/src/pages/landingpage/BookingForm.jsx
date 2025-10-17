@@ -117,6 +117,13 @@ export default function BookingForm() {
   // Mendapatkan tanggal hari ini dalam format YYYY-MM-DD
   const today = new Date().toISOString().split('T')[0];
 
+  // ==================== FUNGSI BARU UNTUK NAVIGASI KEMBALI ====================
+  const handleGoBack = () => {
+    // Arahkan secara eksplisit ke halaman daftar kamar
+    navigate('/rooms');
+  };
+  // ===========================================================================
+
   return (
     <div className="container my-5">
       <div className="row justify-content-center">
@@ -125,9 +132,8 @@ export default function BookingForm() {
             <div className="card-body p-4 p-md-5 position-relative">
               
               <button
-                type="button"
                 className="btn btn-link text-secondary position-absolute top-0 start-0 mt-3 ms-3"
-                onClick={() => navigate(-1)}
+                onClick={handleGoBack}
               >
                 <i className="bi bi-arrow-left"></i>
               </button>

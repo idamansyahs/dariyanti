@@ -54,10 +54,7 @@ const BookingDetail = () => {
 
         try {
             const response = await axios.post('http://localhost:5000/api/booking/pembayaran', {
-                bookingId: booking.id,
-                totalPrice: booking.total,
-                guestName: booking.guestName,
-                email: booking.email
+                bookingId: booking.id
             });
 
             const transactionToken = response.data.token;
@@ -126,7 +123,7 @@ const BookingDetail = () => {
       try {
         await api.put(`/api/booking-user/${bookingId}/cancel`);
         alert("Pesanan Anda telah berhasil dibatalkan.");
-        navigate('/'); // Arahkan ke halaman utama setelah berhasil
+        navigate('/rooms/booking'); // Arahkan ke halaman utama setelah berhasil
       } catch (err) {
         const errorMessage = err.response?.data?.message || "Gagal membatalkan pesanan.";
         alert(`Terjadi kesalahan: ${errorMessage}`);
